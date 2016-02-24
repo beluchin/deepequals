@@ -24,8 +24,8 @@ Deep Java object comparison (without the need to implement equals)
 
 * it also natively supports:
   * `Optional`: deep compares the contained objects recursively when appropriate.
-  * `Map`: maps must contains the same keys. Values are deep compared.
-  * `Set`: must contains the same elements (`equals` and `hashCode` are used by Java here)
+  * `Map`: maps must contain the same keys. Values are deep compared.
+  * `Set`: must contain the same elements (`equals` and `hashCode` are used by Java here)
   * `List` and arrays: deep compares the elements. Choice of strict or lenient ordering.
   
 * supports overriding the way types/fields are compared.
