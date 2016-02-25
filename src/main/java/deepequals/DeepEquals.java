@@ -343,6 +343,7 @@ public final class DeepEquals {
 
         private Set<Method> getFields(final Class<?> c) {
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
+                    .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
                     .collect(toSet()));
             if (!typeLenient) {

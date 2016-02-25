@@ -492,6 +492,18 @@ public class DeepEqualsTest {
         assertEquals("getString", get(errContent));
     }
 
+    @Test
+    public void bridgeMethods() {
+        class Bar {
+            public int get() { return 42; }
+        }
+        class Foo implements Supplier<Bar> {
+            @Override
+            public Bar get() { return new Bar();}
+        }
+        assertTrue(deepEquals(Foo.class, new Foo(), new Foo()));
+    }
+
     private static void assertAll(
             final Consumer<Boolean> c, final Predicate3 p, final Object... args) {
         IntStream.range(0, args.length)
