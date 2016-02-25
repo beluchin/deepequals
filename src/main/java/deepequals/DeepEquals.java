@@ -346,6 +346,7 @@ public final class DeepEquals {
                     .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
                     .collect(toSet()));
+            syntheticMethodsAreNotSupported(result);
             if (!typeLenient) {
                 enforceNoMethodsWithArguments(c, result);
                 enforceNoMethodsReturningVoid(c, result);
@@ -461,6 +462,16 @@ public final class DeepEquals {
 
         private static boolean isOneOf(final Class<?> c, final Class<?>... classes) {
             return ImmutableSet.copyOf(classes).contains(c);
+        }
+
+        private static void syntheticMethodsAreNotSupported(final Set<Method> ms) {
+            ms.stream()
+                .filter(Method::isSynthetic)
+                .findAny()
+                .ifPresent(m -> {
+                    throw new UnsupportedOperationException(String.format(
+                            "method %s is synthetic", m.getName()));
+                });
         }
 
     }
