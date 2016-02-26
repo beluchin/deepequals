@@ -1,9 +1,9 @@
 # deepequals
 Deep Java object comparison (without the need to implement equals)
 
-* compares two objects by recursively comparing their *fields* (no-arg methods with non-void return type. The method name does not matter). It (currently) ignores `equals` methods except for some types: primitives and corresponding wrappers, `String`, `LocalDate` and similar, and `Object`.  
+* compares two objects by recursively comparing their *properties* (public no-arg methods with non-void return type. The method name does not matter). It (currently) ignores `equals` methods except for some types: primitives and corresponding wrappers, `String`, `LocalDate` and similar, and `Object`.  
 
-* since it compares objects by calling methods, it needs to know the type of the top objects you want to compare:
+* since it compares objects by calling methods, it does not require the objects for be of the same runtime type and thus the user must indicate the top type used for comparison:
   
   ```java
   Foo x = ...;
@@ -11,7 +11,7 @@ Deep Java object comparison (without the need to implement equals)
   assertTrue(deepEquals(Foo.class, x, y));
   ```
   
-  Notice that the runtime types of the objects could be different! In addition, generics are fully supported by leveraging Guava's [`TypeToken`](http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/reflect/TypeToken.html):
+* Generics are fully supported by leveraging Guava's [`TypeToken`](http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/reflect/TypeToken.html):
   
   ```java
   assertTrue(deepEquals(
@@ -25,8 +25,21 @@ Deep Java object comparison (without the need to implement equals)
 * it also natively supports:
   * `Optional`: deep compares the contained objects recursively when appropriate.
   * `Map`: maps must contain the same keys. Values are deep compared.
-  * `Set`: must contain the same elements (`equals` and `hashCode` are used by Java here)
+  * `Set`: must contain the same elements as indicated by `equals` and `hashCode`. No deep comparison takes place.
   * `List` and arrays: deep compares the elements. Choice of strict or lenient ordering.
   
-* supports overriding the way types/fields are compared.
+* supports overriding the way types/properties are compared.
+* by default is expects all types involved to be data-carrying objects exclusively i.e. all methods on the objects in the tree both take no args and return something. This restriction can be relaxed, though:
+
+  ```java
+  class Foo {
+      public void thisMethodIsNotAProperty(/* whatever */) { ... }
+      public Bar thisOneIsntEither(Baz x /*, whatever */) { ... }
+      public Qux thisIsAProperty() { ... }
+  }
+  assertTrue(withOptions()
+          .typeLenient()
+          .deepEquals(Foo.class, x, y));
+  ```
+  
 * other goodies ... Check out the tests for more details.
