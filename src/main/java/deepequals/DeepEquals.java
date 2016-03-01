@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
 
 @SuppressWarnings("rawtypes")
@@ -237,6 +238,13 @@ public final class DeepEquals {
                     });
         }
 
+        private boolean compareIterables(final TypeToken<?> tt, final Object x, final Object y) {
+            return compareSequencesOf(
+                    getTypeArgToken(tt, 0),
+                    Lists.newArrayList((Iterable<?>) x),
+                    Lists.newArrayList((Iterable<?>) y));
+        }
+
         private boolean compareLists(final TypeToken<?> tt, final Object x, final Object y) {
             return compareSequencesOf(getTypeArgToken(tt, 0), (List<?>) x, (List<?>) y);
         }
@@ -347,6 +355,9 @@ public final class DeepEquals {
             }
             if (comparing(tt, Collection.class)) {
                 return compareCollections(tt, x, y);
+            }
+            if (comparing(tt, Iterable.class)) {
+                return compareIterables(tt, x, y);
             }
             return compareDeep(tt, x, y);
         }

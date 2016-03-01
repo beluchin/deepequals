@@ -197,10 +197,22 @@ public class DeepEqualsTest {
                 new Integer[] {2, 1}));
     }
 
-    @Ignore
+    @SuppressWarnings("serial")
     @Test
     public void __9_iterables() {
-        fail("not implemented");
+        assertTrue(deepEquals(
+                new TypeToken<Iterable<Integer>>() {},
+                ImmutableList.of(1, 2),
+                ImmutableList.of(1, 2)));
+        assertFalse(deepEquals(
+                new TypeToken<Iterable<Integer>>() {},
+                ImmutableList.of(1, 2),
+                ImmutableList.of(1, 2, 3)));
+        // by default, order must be maintained
+        assertFalse(deepEquals(
+                new TypeToken<Iterable<Integer>>() {},
+                ImmutableList.of(1, 2),
+                ImmutableList.of(2, 1)));
     }
 
     @SuppressWarnings("serial")
@@ -225,7 +237,7 @@ public class DeepEqualsTest {
     @Test
     public void _11_orderLenient() {
 
-        // arrays and collections also participate in the order-lenient option
+        // arrays, collections, and iterables also participate in the order-lenient option
 
         assertTrue(withOptions()
                 .orderLenient()
