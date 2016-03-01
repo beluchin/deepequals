@@ -1,7 +1,7 @@
 # deepequals
 Deep Java object comparison (without the need to implement equals)
 
-* compares two objects by recursively comparing their *properties* (public no-arg methods with non-void return type. The method name does not matter). It (currently) ignores `equals` methods except for some types: primitives and corresponding wrappers, `String`, `LocalDate` and similar, and `Object`.  
+* compares two objects by recursively comparing their *properties* (public no-arg methods with non-void return type. The method name does not matter). It (currently) ignores `equals` methods except for some types: primitives and corresponding wrappers, `String`, `LocalDate` and similar, enums, and `Object`.  
 
 * since it compares objects by calling methods, it does not require the objects to be of the same runtime type and thus the user must indicate the top type used for comparison:
   
