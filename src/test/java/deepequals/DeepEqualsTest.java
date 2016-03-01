@@ -4,6 +4,8 @@ import static deepequals.DeepEquals.comparator;
 import static deepequals.DeepEquals.deepEquals;
 import static deepequals.DeepEquals.field;
 import static deepequals.DeepEquals.withOptions;
+import static deepequals.DeepEqualsTest.EnumFoo.Hello;
+import static deepequals.DeepEqualsTest.EnumFoo.World;
 import static java.lang.Math.abs;
 import static java.util.Optional.empty;
 import static org.junit.Assert.assertEquals;
@@ -44,6 +46,10 @@ public class DeepEqualsTest {
         boolean test(Object arg1, Object arg2, Object arg3);
     }
 
+    public static enum EnumFoo {
+        Hello, World
+    }
+
     @Test
     public void __1_equals() {
         assertAllTrue(DeepEquals::deepEqualsTypeUnsafe,
@@ -52,7 +58,8 @@ public class DeepEqualsTest {
                 String.class, "hello", "hello",
                 LocalDate.class, LocalDate.MIN, LocalDate.MIN,
                 LocalTime.class, LocalTime.MIN, LocalTime.MIN,
-                LocalDateTime.class, LocalDateTime.MIN, LocalDateTime.MIN);
+                LocalDateTime.class, LocalDateTime.MIN, LocalDateTime.MIN,
+                EnumFoo.class, Hello, Hello);
 
         final Object x = new Object();
         assertTrue(deepEquals(Object.class, x, x));
@@ -64,7 +71,8 @@ public class DeepEqualsTest {
                 LocalDate.class, LocalDate.MIN, LocalDate.MAX,
                 LocalDate.class, LocalDate.MIN, LocalDate.MAX,
                 LocalDateTime.class, LocalDateTime.MIN, LocalDateTime.MAX,
-                Object.class, new Object(), new Object());
+                Object.class, new Object(), new Object(),
+                EnumFoo.class, Hello, World);
     }
 
     @Test

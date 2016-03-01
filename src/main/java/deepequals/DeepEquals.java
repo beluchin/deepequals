@@ -416,6 +416,7 @@ public final class DeepEquals {
             final TypeToken<?> unwrapped = tt.unwrap();
             final Class<?> t = unwrapped.getRawType();
             return unwrapped.isPrimitive()
+                    || t.isEnum()
                     || isOneOf(
                             t,
                             String.class,
