@@ -12,6 +12,7 @@ import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -206,6 +207,13 @@ public final class DeepEquals {
                     asList((Object[]) y));
         }
 
+        private boolean compareCollections(final TypeToken<?> tt, final Object x, final Object y) {
+            return compareSequencesOf(
+                    getTypeArgToken(tt, 0),
+                    asList(((Collection<?>) x).toArray(new Object[] {})),
+                    asList(((Collection<?>) y).toArray(new Object[] {})));
+        }
+
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken<?> tt, final Object x, final Object y) {
             final Set<Method> ms = getFields(tt.getRawType());
@@ -336,6 +344,9 @@ public final class DeepEquals {
             }
             if (comparing(tt, List.class)) {
                 return compareLists(tt, x, y);
+            }
+            if (comparing(tt, Collection.class)) {
+                return compareCollections(tt, x, y);
             }
             return compareDeep(tt, x, y);
         }
