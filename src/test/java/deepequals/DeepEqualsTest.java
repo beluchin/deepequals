@@ -278,8 +278,16 @@ public class DeepEqualsTest {
     @Test
     public void _14_overrideComparatorForFieldOnTypeToken() {
         class Foo {
-            public Supplier<String> bad() { return () -> uniqueString(); }
-            public Supplier<String> good() { return () -> "good"; }
+            public Supplier<String> bad() {
+                return new Supplier<String>() {
+                    @Override public String get() { return uniqueString(); }
+                };
+            }
+            public Supplier<String> good() {
+                return new Supplier<String>() {
+                    @Override public String get() { return "good"; }
+                };
+            }
         };
         assertTrue(withOptions()
                 .override(DeepEquals. <Supplier<String>> comparator(
@@ -316,7 +324,11 @@ public class DeepEqualsTest {
                     .deepEquals(Foo.class, new Foo(), new Foo());
             assertEquals("getString", get(errContent));
             // --
-            final Supplier<Foo> fooSupplier = new Supplier<Foo>() {
+            final Supplier<Foo> fooSupplier1 = new Supplier<Foo>() {
+                @Override
+                public Foo get() { return new Foo(); }
+            };
+            final Supplier<Foo> fooSupplier2 = new Supplier<Foo>() {
                 @Override
                 public Foo get() { return new Foo(); }
             };
@@ -324,8 +336,8 @@ public class DeepEqualsTest {
                     .verbose()
                     .deepEquals(
                             new TypeToken<Supplier<Foo>>() {},
-                            fooSupplier,
-                            fooSupplier);
+                            fooSupplier1,
+                            fooSupplier2);
             assertEquals("get.getString", get(errContent));
             // --
             withOptions()
@@ -376,15 +388,18 @@ public class DeepEqualsTest {
                             ImmutableList.of(1));
             assertEquals("[1]", get(errContent));
             // --
-            final Supplier<List<Foo>> listOfFooSupplier = new Supplier<List<Foo>>() {
+            final Supplier<List<Foo>> listOfFooSupplier1 = new Supplier<List<Foo>>() {
+                @Override public List<Foo> get() { return ImmutableList.of(new Foo()); }
+            };
+            final Supplier<List<Foo>> listOfFooSupplier2 = new Supplier<List<Foo>>() {
                 @Override public List<Foo> get() { return ImmutableList.of(new Foo()); }
             };
             withOptions()
                     .verbose()
                     .deepEquals(
                             new TypeToken<Supplier<List<Foo>>>() {},
-                            listOfFooSupplier,
-                            listOfFooSupplier);
+                            listOfFooSupplier1,
+                            listOfFooSupplier2);
             assertEquals("get[0].getString", get(errContent));
             // --
             // list/arrays order lenient

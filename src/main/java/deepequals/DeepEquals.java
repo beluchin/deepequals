@@ -310,11 +310,10 @@ public final class DeepEquals {
 
         @SuppressWarnings("unchecked")
         private boolean deepEqualsImpl(final TypeToken<?> tt, final Object x, final Object y) {
-            if ((x == null && y != null)
-                    || (x != null && y == null)) {
+            if ((x == null && y != null) || (x != null && y == null)) {
                 return false;
             }
-            if (x == null && y == null) {
+            if (x == y || (x == null && y == null)) {
                 return true;
             }
             if (typeTokenComparators.containsKey(tt)) {
