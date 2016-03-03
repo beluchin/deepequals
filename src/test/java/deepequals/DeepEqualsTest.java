@@ -253,8 +253,14 @@ public class DeepEqualsTest {
                         ImmutableList.of(1, 2)));
     }
 
+    @Ignore
     @Test
-    public void _12_overrideClassComparator() {
+    public void _12_equalsLenient() {
+        fail("not implemented");
+    }
+
+    @Test
+    public void _13_overrideClassComparator() {
         assertTrue(withOptions()
                 .override(comparator(Integer.class, (x, y) -> abs(x) == abs(y)))
                 .deepEquals(Integer.class, 42, -42));
@@ -265,7 +271,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void _13_overrideTypeTokenComparator() {
+    public void _14_overrideTypeTokenComparator() {
         class Foo {
             public Supplier<Integer> get() { throw new UnsupportedOperationException(); }
         };
@@ -294,7 +300,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void _14_overrideFieldComparator() {
+    public void _15_overrideFieldComparator() {
         class Foo {
             public String bad() { return uniqueString(); }
             public String good() { return "good"; }
@@ -310,7 +316,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void _15_overrideComparatorForFieldOnTypeToken() {
+    public void _16_overrideComparatorForFieldOnTypeToken() {
         class Foo {
             public Supplier<String> bad() {
                 return new Supplier<String>() {
@@ -336,7 +342,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void _16_null() {
+    public void _17_null() {
         assertTrue(deepEquals(Object.class, null, null));
         assertFalse(deepEquals(Object.class, null, new Object()));
         assertFalse(deepEquals(Object.class, new Object(), null));
@@ -344,7 +350,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void _17_verbose() {
+    public void _18_verbose() {
         final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
         System.setErr(new PrintStream(errContent));
 
@@ -463,7 +469,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void _18_typeLenient() {
+    public void _19_typeLenient() {
         class Foo {
             public int bar(final Object x) { return 0; }
             public void baz() {}
