@@ -481,6 +481,25 @@ public class DeepEqualsTest {
     }
 
     @Test
+    public void _19_ignore() {
+        class Foo {
+        	private int great;
+        	
+        	public Foo(int great) {
+        		this.great = great;
+        	}
+        	
+            public int zero() { return 0; }
+            public int great() { return great; }
+        }
+        
+        assertTrue(withOptions()
+                .typeLenient()
+                .ignore(Foo.class, "great")
+                .deepEquals(Foo.class, new Foo(1), new Foo(2)));
+    }
+
+    @Test
     public void class_not() {
         class Foo {
             public String get() { return uniqueString(); }
