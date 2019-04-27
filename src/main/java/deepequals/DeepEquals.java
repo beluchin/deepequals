@@ -30,6 +30,79 @@ import com.google.common.reflect.TypeToken;
 
 @SuppressWarnings("rawtypes")
 public final class DeepEquals {
+    private static Set<String> ObjectClassMethodNames = objectClassMethodNames();
+
+    public static <T> TypeTokenComparator comparator(final Class<T> c, final BiPredicate<T, T> f) {
+        return new TypeTokenComparator(TypeToken.of(c), f);
+    }
+
+    public static <T> Comparator comparator(final Field field, final BiPredicate<T, T> f) {
+        return new FieldComparator(field, f);
+    }
+
+    public static <T> TypeTokenComparator comparator(final TypeToken<T> tt, final BiPredicate<T, T> f) {
+        return new TypeTokenComparator(tt, f);
+    }
+
+    public static <T> boolean deepEquals(final Class<T> c, final T x, final T y) {
+        return new Stateful().deepEquals(c, x, y);
+    }
+
+    public static <T> boolean deepEquals(final TypeToken<T> tt, final T x, final T y) {
+        return new Stateful().deepEquals(tt, x, y);
+    }
+
+    public static boolean deepEqualsTypeUnsafe(
+            final Object classOrTypeToken, final Object x, final Object y) {
+        return new Stateful().deepEqualsTypeUnsafe(classOrTypeToken, x, y);
+    }
+
+    public static Field field(final Class<?> c, final String name) {
+        return new Field(TypeToken.of(c), name);
+    }
+
+    public static Field field(final TypeToken<?> tt, final String name) {
+        return new Field(tt, name);
+    }
+
+    public static WithOptions withOptions() {
+        return new Stateful();
+    }
+
+    // this method cannot be placed in a general purpose class (even though it is clearly
+    // general-purpose) because otherwise the tests would not work due to the issue of not
+    // being allowed to call methods on inner classes reflectively (even though the method may
+    // be public)
+    // http://www.javaspecialists.eu/archive/Issue117.html
+    private static TypeToken<?> getTypeArgToken(final TypeToken<?> tt, final int i) {
+        final ParameterizedType pt = (ParameterizedType) (tt.getType());
+        return TypeToken.of(pt.getActualTypeArguments()[i]);
+    }
+
+    private static Object invoke(final Method m, final Object x, final Object... args) {
+        try {
+            return m.invoke(x, args);
+        } catch (final Throwable e) {
+            throw propagate(e);
+        }
+    }
+
+    private static Set<String> objectClassMethodNames() {
+        return ImmutableSet.copyOf(stream(Object.class.getMethods())
+                .map(Method::getName)
+                .collect(toSet()));
+    }
+
+    public interface WithOptions {
+        <T> boolean deepEquals(Class<T> c, T x, T y);
+        <T> boolean deepEquals(TypeToken<T> tt, T x, T y);
+        boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
+        WithOptions orderLenient(/* add support to limit order leniency to certain types/method */);
+        WithOptions override(Comparator... comparators);
+        WithOptions typeLenient();
+        WithOptions verbose();
+        WithOptions ignore(Class<?> c, String name);
+    }
 
     public static abstract class Comparator {
         private final BiPredicate predicate;
@@ -120,27 +193,86 @@ public final class DeepEquals {
         }
     }
 
-    public interface WithOptions {
-        <T> boolean deepEquals(Class<T> c, T x, T y);
-        <T> boolean deepEquals(TypeToken<T> tt, T x, T y);
-        boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
-        WithOptions orderLenient(/* add support to limit order leniency to certain types/method */);
-        WithOptions override(Comparator... comparators);
-        WithOptions typeLenient();
-        WithOptions verbose();
-        WithOptions ignore(Class<?> c, String name);
-    }
-
     private static class Stateful implements WithOptions {
-        private final Map<TypeToken, BiPredicate> typeTokenComparators = new HashMap<>();
-        private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
-        private boolean verbose = false;
-        private final Stack<String> objectPath = new Stack<>();
-        private boolean orderLenient = false;
-        private boolean typeLenient = false;
-        private final Set<Field> ignoredFields = new HashSet<>();
         private static final Predicate<Method> WithArguments = m -> m.getParameterCount() != 0;
         private static final Predicate<Method> ReturningVoid = m -> m.getReturnType().equals(Void.TYPE);
+        private final Map<TypeToken, BiPredicate> typeTokenComparators = new HashMap<>();
+        private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
+        private final Stack<String> objectPath = new Stack<>();
+        private final Set<Field> ignoredFields = new HashSet<>();
+        private boolean verbose = false;
+        private boolean orderLenient = false;
+        private boolean typeLenient = false;
+
+        private static boolean compareSets(final Object x, final Object y) {
+            final Set<?> setx = (Set<?>) x;
+            final Set<?> sety = (Set<?>) y;
+            return setx.size() == sety.size()
+                    && setx.stream().allMatch(e -> sety.contains(e));
+        }
+
+        private static boolean compareWithEquals(final TypeToken<?> tt) {
+            final TypeToken<?> unwrapped = tt.unwrap();
+            final Class<?> t = unwrapped.getRawType();
+            return unwrapped.isPrimitive()
+                    || t.isEnum()
+                    || isOneOf(
+                            t,
+                            String.class,
+                            LocalDate.class,
+                            LocalTime.class,
+                            LocalDateTime.class,
+                            Object.class);
+        }
+
+        private static boolean comparing(final TypeToken<?> tt, final Class<?> c) {
+            return tt.getRawType().equals(c);
+        }
+
+        private static void enforceNoMethodsReturningVoid(
+                final Class<?> c, final Set<Method> result) {
+            result.stream()
+                    .filter(ReturningVoid)
+                    .findAny()
+                    .ifPresent(m -> {
+                        throw new IllegalClassException(format(
+                            "%s contains methods returning void.",
+                            c.getName()));
+                    });
+        }
+
+        private static void enforceNoMethodsWithArguments(
+                final Class<?> c, final Set<Method> result) {
+            result.stream()
+                    .filter(WithArguments)
+                    .findAny()
+                    .ifPresent(m -> {
+                        throw new IllegalClassException(format(
+                            "%s contains methods with arguments.",
+                            c.getName()));
+                    });
+        }
+
+        private static Set<Method> excludeMethods(
+                final Set<Method> original, final Predicate<Method> p) {
+            return ImmutableSet.copyOf(original.stream()
+                    .filter(p.negate())
+                    .collect(toSet()));
+        }
+
+        private static boolean isOneOf(final Class<?> c, final Class<?>... classes) {
+            return ImmutableSet.copyOf(classes).contains(c);
+        }
+
+        private static void syntheticMethodsAreNotSupported(final Set<Method> ms) {
+            ms.stream()
+                .filter(Method::isSynthetic)
+                .findAny()
+                .ifPresent(m -> {
+                    throw new UnsupportedOperationException(String.format(
+                            "method %s is synthetic", m.getName()));
+                });
+        }
 
         @Override
         public <T> boolean deepEquals(final Class<T> c, final T x, final T y) {
@@ -208,7 +340,7 @@ public final class DeepEquals {
         	ignoredFields.add(field(c, name));
         	return this;
         }
-        
+
         private boolean compareArrays(final TypeToken<?> tt, final Object x, final Object y) {
             return compareSequencesOf(
                     tt.getComponentType(),
@@ -435,139 +567,6 @@ public final class DeepEquals {
             objectPath.push(name);
         }
 
-        private static boolean compareSets(final Object x, final Object y) {
-            final Set<?> setx = (Set<?>) x;
-            final Set<?> sety = (Set<?>) y;
-            return setx.size() == sety.size()
-                    && setx.stream().allMatch(e -> sety.contains(e));
-        }
-
-        private static boolean compareWithEquals(final TypeToken<?> tt) {
-            final TypeToken<?> unwrapped = tt.unwrap();
-            final Class<?> t = unwrapped.getRawType();
-            return unwrapped.isPrimitive()
-                    || t.isEnum()
-                    || isOneOf(
-                            t,
-                            String.class,
-                            LocalDate.class,
-                            LocalTime.class,
-                            LocalDateTime.class,
-                            Object.class);
-        }
-
-        private static boolean comparing(final TypeToken<?> tt, final Class<?> c) {
-            return tt.getRawType().equals(c);
-        }
-
-        private static void enforceNoMethodsReturningVoid(
-                final Class<?> c, final Set<Method> result) {
-            result.stream()
-                    .filter(ReturningVoid)
-                    .findAny()
-                    .ifPresent(m -> {
-                        throw new IllegalClassException(format(
-                            "%s contains methods returning void.",
-                            c.getName()));
-                    });
-        }
-
-        private static void enforceNoMethodsWithArguments(
-                final Class<?> c, final Set<Method> result) {
-            result.stream()
-                    .filter(WithArguments)
-                    .findAny()
-                    .ifPresent(m -> {
-                        throw new IllegalClassException(format(
-                            "%s contains methods with arguments.",
-                            c.getName()));
-                    });
-        }
-
-        private static Set<Method> excludeMethods(
-                final Set<Method> original, final Predicate<Method> p) {
-            return ImmutableSet.copyOf(original.stream()
-                    .filter(p.negate())
-                    .collect(toSet()));
-        }
-
-        private static boolean isOneOf(final Class<?> c, final Class<?>... classes) {
-            return ImmutableSet.copyOf(classes).contains(c);
-        }
-
-        private static void syntheticMethodsAreNotSupported(final Set<Method> ms) {
-            ms.stream()
-                .filter(Method::isSynthetic)
-                .findAny()
-                .ifPresent(m -> {
-                    throw new UnsupportedOperationException(String.format(
-                            "method %s is synthetic", m.getName()));
-                });
-        }
-
-    }
-
-    private static Set<String> ObjectClassMethodNames = objectClassMethodNames();
-
-    public static <T> TypeTokenComparator comparator(final Class<T> c, final BiPredicate<T, T> f) {
-        return new TypeTokenComparator(TypeToken.of(c), f);
-    }
-
-    public static <T> Comparator comparator(final Field field, final BiPredicate<T, T> f) {
-        return new FieldComparator(field, f);
-    }
-
-    public static <T> TypeTokenComparator comparator(final TypeToken<T> tt, final BiPredicate<T, T> f) {
-        return new TypeTokenComparator(tt, f);
-    }
-
-    public static <T> boolean deepEquals(final Class<T> c, final T x, final T y) {
-        return new Stateful().deepEquals(c, x, y);
-    }
-
-    public static <T> boolean deepEquals(final TypeToken<T> tt, final T x, final T y) {
-        return new Stateful().deepEquals(tt, x, y);
-    }
-
-    public static boolean deepEqualsTypeUnsafe(
-            final Object classOrTypeToken, final Object x, final Object y) {
-        return new Stateful().deepEqualsTypeUnsafe(classOrTypeToken, x, y);
-    }
-
-    public static Field field(final Class<?> c, final String name) {
-        return new Field(TypeToken.of(c), name);
-    }
-
-    public static Field field(final TypeToken<?> tt, final String name) {
-        return new Field(tt, name);
-    }
-
-    public static WithOptions withOptions() {
-        return new Stateful();
-    }
-
-    // this method cannot be placed in a general purpose class (even though it is clearly
-    // general-purpose) because otherwise the tests would not work due to the issue of not
-    // being allowed to call methods on inner classes reflectively (even though the method may
-    // be public)
-    // http://www.javaspecialists.eu/archive/Issue117.html
-    private static TypeToken<?> getTypeArgToken(final TypeToken<?> tt, final int i) {
-        final ParameterizedType pt = (ParameterizedType) (tt.getType());
-        return TypeToken.of(pt.getActualTypeArguments()[i]);
-    }
-
-    private static Object invoke(final Method m, final Object x, final Object... args) {
-        try {
-            return m.invoke(x, args);
-        } catch (final Throwable e) {
-            throw propagate(e);
-        }
-    }
-
-    private static Set<String> objectClassMethodNames() {
-        return ImmutableSet.copyOf(stream(Object.class.getMethods())
-                .map(Method::getName)
-                .collect(toSet()));
     }
 
 
