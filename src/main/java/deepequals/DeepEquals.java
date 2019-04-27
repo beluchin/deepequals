@@ -74,7 +74,7 @@ public final class DeepEquals {
     // being allowed to call methods on inner classes reflectively (even though the method may
     // be public)
     // http://www.javaspecialists.eu/archive/Issue117.html
-    private static TypeToken<?> getTypeArgToken(final TypeToken<?> tt, final int i) {
+    private static TypeToken getTypeArgToken(final TypeToken tt, final int i) {
         final ParameterizedType pt = (ParameterizedType) (tt.getType());
         return TypeToken.of(pt.getActualTypeArguments()[i]);
     }
@@ -341,14 +341,14 @@ public final class DeepEquals {
         	return this;
         }
 
-        private boolean compareArrays(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean compareArrays(final TypeToken tt, final Object x, final Object y) {
             return compareSequencesOf(
                     tt.getComponentType(),
                     asList((Object[]) x),
                     asList((Object[]) y));
         }
 
-        private boolean compareCollections(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean compareCollections(final TypeToken tt, final Object x, final Object y) {
             return compareSequencesOf(
                     getTypeArgToken(tt, 0),
                     asList(((Collection<?>) x).toArray(new Object[] {})),
@@ -356,7 +356,7 @@ public final class DeepEquals {
         }
 
         @SuppressWarnings("unchecked")
-        private boolean compareDeep(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
             final Set<Method> ms = getFields(tt.getRawType());
             return ms.stream()
                     .allMatch(m -> {
@@ -568,6 +568,4 @@ public final class DeepEquals {
         }
 
     }
-
-
 }
