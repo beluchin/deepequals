@@ -481,6 +481,61 @@ public class DeepEqualsTest {
     }
 
     @Test
+    public void _19_ignore() {
+        class Foo {
+        	private int great;
+        	
+        	public Foo(int great) {
+        		this.great = great;
+        	}
+        	
+            public int zero() { return 0; }
+            public int great() { return great; }
+        }
+        
+        assertTrue(withOptions()
+                .typeLenient()
+                .ignore(Foo.class, "great")
+                .deepEquals(Foo.class, new Foo(1), new Foo(2)));
+    }
+
+    @Test
+    public void _20_ignoreException() {
+        class Foo {
+        	private int great;
+        	
+        	public Foo() {
+        	}
+        	
+            public int optional() { throw new RuntimeException(); }
+        }
+        
+        assertTrue(withOptions()
+                .ignore(Foo.class, "optional")
+                .deepEquals(Foo.class, new Foo(), new Foo()));
+    }
+
+    @Test
+    public void _21_ignoreNullField() {
+    	class Bar {
+    	}
+    	
+        class Foo {
+            private Bar zero;
+
+            public Foo(Bar zero) {
+                this.zero = zero;
+            }
+
+            public Bar zero() { return this.zero; }
+        }
+
+        assertTrue(withOptions()
+                .ignore(Foo.class, "zero")
+                .deepEquals(Foo.class, new Foo(new Bar()), new Foo(null)));
+    }
+    
+    @Test
     public void class_not() {
         class Foo {
             public String get() { return uniqueString(); }

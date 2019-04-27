@@ -128,6 +128,7 @@ public final class DeepEquals {
         WithOptions override(Comparator... comparators);
         WithOptions typeLenient();
         WithOptions verbose();
+        WithOptions ignore(Class<?> c, String name);
     }
 
     private static class Stateful implements WithOptions {
@@ -137,6 +138,7 @@ public final class DeepEquals {
         private final Stack<String> objectPath = new Stack<>();
         private boolean orderLenient = false;
         private boolean typeLenient = false;
+        private final Set<Field> ignoredFields = new HashSet<>();
         private static final Predicate<Method> WithArguments = m -> m.getParameterCount() != 0;
         private static final Predicate<Method> ReturningVoid = m -> m.getReturnType().equals(Void.TYPE);
 
@@ -201,6 +203,12 @@ public final class DeepEquals {
             return this;
         }
 
+        @Override
+        public WithOptions ignore(Class<?> c, final String name) {
+        	ignoredFields.add(field(c, name));
+        	return this;
+        }
+        
         private boolean compareArrays(final TypeToken<?> tt, final Object x, final Object y) {
             return compareSequencesOf(
                     tt.getComponentType(),
@@ -366,6 +374,7 @@ public final class DeepEquals {
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
                     .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
+                    .filter(m -> !ignoredFields.contains(field(c, m.getName())))
                     .collect(toSet()));
             syntheticMethodsAreNotSupported(result);
             if (!typeLenient) {
