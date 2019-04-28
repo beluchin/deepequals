@@ -216,7 +216,7 @@ public final class DeepEquals {
 
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
-            final Set<Method> ms = getFields(tt.getRawType());
+            final Set<Method> ms = methodsToEvaluate(tt.getRawType());
             return ms.stream()
                     .allMatch(m -> {
                         final String fieldName = m.getName();
@@ -237,18 +237,18 @@ public final class DeepEquals {
                     });
         }
 
-        private boolean compareIterables(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean compareIterables(final TypeToken tt, final Object x, final Object y) {
             return compareSequencesOf(
                     getTypeArgToken(tt, 0),
                     Lists.newArrayList((Iterable<?>) x),
                     Lists.newArrayList((Iterable<?>) y));
         }
 
-        private boolean compareLists(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean compareLists(final TypeToken tt, final Object x, final Object y) {
             return compareSequencesOf(getTypeArgToken(tt, 0), (List<?>) x, (List<?>) y);
         }
 
-        private boolean compareMaps(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean compareMaps(final TypeToken tt, final Object x, final Object y) {
             final Map<?, ?> mapx = (Map<?, ?>) x;
             final Map<?, ?> mapy = (Map<?, ?>) y;
             final TypeToken<?> valueTT = getTypeArgToken(tt, 1);
@@ -258,7 +258,7 @@ public final class DeepEquals {
                         && deepEqualsImpl(valueTT, mapx.get(k), mapy.get(k)));
         }
 
-        private boolean compareOptionals(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean compareOptionals(final TypeToken tt, final Object x, final Object y) {
             final Optional<?> optx = (Optional<?>) x;
             final Optional<?> opty = (Optional<?>) y;
 
@@ -270,14 +270,14 @@ public final class DeepEquals {
         }
 
         private boolean compareSequencesOf(
-                final TypeToken<?> componentType, final List<?> x, final List<?> y) {
+                final TypeToken componentType, final List x, final List y) {
             return orderLenient
                     ? compareSequencesOfLenient(componentType, x, y)
                     : compareSequencesOfStrict(componentType, x, y);
         }
 
         private boolean compareSequencesOfLenient(
-                final TypeToken<?> componentType, final List<?> x, final List<?> y) {
+                final TypeToken componentType, final List x, final List y) {
             final int xSize = x.size();
             final int ySize = y.size();
             if (xSize != ySize) {
@@ -300,8 +300,8 @@ public final class DeepEquals {
                     });
         }
 
-        private boolean compareSequencesOfStrict(final TypeToken<?> componentType,
-                final List<?> x, final List<?> y) {
+        private boolean compareSequencesOfStrict(final TypeToken componentType,
+                final List x, final List y) {
             final int xSize = x.size();
             final int ySize = y.size();
             if (!range(0, xSize)
@@ -324,7 +324,7 @@ public final class DeepEquals {
         }
 
         @SuppressWarnings("unchecked")
-        private boolean deepEqualsImpl(final TypeToken<?> tt, final Object x, final Object y) {
+        private boolean deepEqualsImpl(final TypeToken tt, final Object x, final Object y) {
             if ((x == null && y != null) || (x != null && y == null)) {
                 return false;
             }
@@ -361,7 +361,7 @@ public final class DeepEquals {
             return compareDeep(tt, x, y);
         }
 
-        private Set<Method> getFields(final Class<?> c) {
+        private Set<Method> methodsToEvaluate(final Class c) {
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
                     .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
@@ -433,7 +433,7 @@ public final class DeepEquals {
                     && setx.stream().allMatch(e -> sety.contains(e));
         }
 
-        private static boolean compareWithEquals(final TypeToken<?> tt) {
+        private static boolean compareWithEquals(final TypeToken tt) {
             final TypeToken<?> unwrapped = tt.unwrap();
             final Class<?> t = unwrapped.getRawType();
             return unwrapped.isPrimitive()
@@ -447,12 +447,12 @@ public final class DeepEquals {
                             Object.class);
         }
 
-        private static boolean comparing(final TypeToken<?> tt, final Class<?> c) {
+        private static boolean comparing(final TypeToken tt, final Class c) {
             return tt.getRawType().equals(c);
         }
 
         private static void enforceNoMethodsReturningVoid(
-                final Class<?> c, final Set<Method> result) {
+                final Class c, final Set<Method> result) {
             result.stream()
                     .filter(ReturningVoid)
                     .findAny()
@@ -464,7 +464,7 @@ public final class DeepEquals {
         }
 
         private static void enforceNoMethodsWithArguments(
-                final Class<?> c, final Set<Method> result) {
+                final Class c, final Set<Method> result) {
             result.stream()
                     .filter(WithArguments)
                     .findAny()
@@ -482,7 +482,7 @@ public final class DeepEquals {
                     .collect(toSet()));
         }
 
-        private static boolean isOneOf(final Class<?> c, final Class<?>... classes) {
+        private static boolean isOneOf(final Class c, final Class... classes) {
             return ImmutableSet.copyOf(classes).contains(c);
         }
 
@@ -495,7 +495,6 @@ public final class DeepEquals {
                             "method %s is synthetic", m.getName()));
                 });
         }
-
     }
 
     public static class TypeTokenComparator extends Comparator {
