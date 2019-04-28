@@ -1,43 +1,30 @@
 package deepequals;
 
-import static deepequals.DeepEquals.comparator;
-import static deepequals.DeepEquals.deepEquals;
-import static deepequals.DeepEquals.field;
-import static deepequals.DeepEquals.withOptions;
-import static deepequals.DeepEqualsTest.EnumFoo.Hello;
-import static deepequals.DeepEqualsTest.EnumFoo.World;
-import static java.lang.Math.abs;
-import static java.util.Optional.empty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static utils.RandomUtils.uniqueString;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.reflect.TypeToken;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.reflect.TypeToken;
+import static deepequals.DeepEquals.*;
+import static deepequals.DeepEqualsTest.EnumFoo.Hello;
+import static deepequals.DeepEqualsTest.EnumFoo.World;
+import static java.lang.Math.abs;
+import static java.util.Optional.empty;
+import static org.junit.jupiter.api.Assertions.*;
+import static utils.RandomUtils.uniqueString;
 
 @SuppressWarnings("unused")
 public class DeepEqualsTest {
@@ -253,7 +240,7 @@ public class DeepEqualsTest {
                         ImmutableList.of(1, 2)));
     }
 
-    @Ignore
+    @Disabled
     @Test
     public void _12_equalsLenient() {
         fail("not implemented");
@@ -499,12 +486,13 @@ public class DeepEqualsTest {
         assertFalse(deepEquals(Foo.class, new Foo(), new Foo()));
     }
 
-    @Test(expected = StackOverflowError.class)
+    @Test
     public void cyclesAreNotDetected() {
         class Foo {
             public Foo get() { return this; }
         };
-        deepEquals(Foo.class, new Foo(), new Foo());
+        assertThrows(StackOverflowError.class,
+                     () -> deepEquals(Foo.class, new Foo(), new Foo()));
     }
 
     @SuppressWarnings("serial")
@@ -513,35 +501,38 @@ public class DeepEqualsTest {
         assertFalse(deepEquals(new TypeToken<Supplier<Integer>>() {}, () -> 43, () -> 42));
     }
 
-    @Ignore
-    @Test(expected = FieldNotFoundException.class)
+    @Disabled
+    @Test
     public void incorrectMethodNameOnFieldDeclaration() {
         fail("not implemented");
     }
 
-    @Test(expected = IllegalClassException.class)
+    @Test
     public void methodsReturningVoidAreIllegal() {
         class Foo {
             public void bar() { throw new UnsupportedOperationException(); }
             public int baz() { throw new UnsupportedOperationException(); }
         }
-        deepEquals(Foo.class, new Foo(), new Foo());
+        assertThrows(IllegalArgumentException.class,
+                     () -> deepEquals(Foo.class, new Foo(), new Foo()));
     }
 
-    @Test(expected = IllegalClassException.class)
+    @Test
     public void methodsWithArgumentsAreIllegal() {
         class Foo {
             public int bar(final Object x) { throw new UnsupportedOperationException(); }
             public int baz() { throw new UnsupportedOperationException(); }
         }
-        deepEquals(Foo.class, new Foo(), new Foo());
+        assertThrows(IllegalArgumentException.class,
+                     () -> deepEquals(Foo.class, new Foo(), new Foo()));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void twoComparatorsForTheSameType() {
-        withOptions()
-                .override(comparator(int.class, (x, y) -> true),
-                        comparator(int.class, (x, y) -> true));
+        assertThrows(IllegalArgumentException.class,
+                     () -> withOptions()
+                             .override(comparator(int.class, (x, y) -> true),
+                                       comparator(int.class, (x, y) -> true)));
     }
 
     @Test
@@ -586,11 +577,11 @@ public class DeepEqualsTest {
     }
 
     private static void assertAllFalse(final Predicate3 f, final Object... args) {
-        assertAll(Assert::assertFalse, f, args);
+        assertAll(Assertions::assertFalse, f, args);
     }
 
     private static void assertAllTrue(final Predicate3 f, final Object... args) {
-        assertAll(Assert::assertTrue, f, args);
+        assertAll(Assertions::assertTrue, f, args);
     }
 
     @SafeVarargs
