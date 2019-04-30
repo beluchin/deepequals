@@ -29,7 +29,8 @@ public final class DeepEquals {
 
         boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
 
-        WithOptions ignore(Predicate<Method> first, Predicate<Method>... rest);
+        WithOptions ignore(BiPredicate<Class, Method> first,
+                           BiPredicate<Class, Method>... rest);
 
         WithOptions orderLenient(/* add support to limit order leniency to certain types/method */);
 
@@ -123,7 +124,7 @@ public final class DeepEquals {
         private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
         private final Stack<String> objectPath = new Stack<>();
         private final Set<Field> ignoredFields = new HashSet<>();
-        private final Set<Predicate<Method>> ignoredPredicates = new HashSet<>();
+        private final Set<BiPredicate<Class, Method>> ignoredPredicates = new HashSet<>();
         private boolean verbose = false;
         private boolean orderLenient = false;
         private boolean typeLenient = false;
@@ -159,8 +160,8 @@ public final class DeepEquals {
         }
 
         @Override
-        public WithOptions ignore(final Predicate<Method> first,
-                                  final Predicate<Method>... rest) {
+        public WithOptions ignore(final BiPredicate<Class, Method> first,
+                                  final BiPredicate<Class, Method>... rest) {
             ignoredPredicates.add(first);
             ignoredPredicates.addAll(asList(rest));
             return this;
@@ -362,7 +363,7 @@ public final class DeepEquals {
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
                     .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
-                    .filter(notIgnored())
+                    .filter(ignoredOn(c).negate())
                     .collect(toSet()));
             syntheticMethodsAreNotSupported(result);
             if (!typeLenient) {
@@ -375,8 +376,8 @@ public final class DeepEquals {
             return result;
         }
 
-        private Predicate<Method> notIgnored() {
-            return m -> ignoredPredicates.stream().noneMatch(p -> p.test(m));
+        private Predicate<Method> ignoredOn(final Class c) {
+            return m -> ignoredPredicates.stream().anyMatch(p -> p.test(c, m));
         }
 
         private void override(final FieldComparator c) {

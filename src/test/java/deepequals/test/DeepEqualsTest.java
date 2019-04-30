@@ -1,4 +1,4 @@
-package deepequals.client;
+package deepequals.test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -11,21 +11,17 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
-import static com.rainerhahnekamp.sneakythrow.Sneaky.sneak;
 import static deepequals.DeepEquals.*;
-import static deepequals.MethodPredicates.method;
-import static deepequals.client.DeepEqualsTest.EnumFoo.Hello;
-import static deepequals.client.DeepEqualsTest.EnumFoo.World;
+import static deepequals.test.DeepEqualsTest.EnumFoo.Hello;
+import static deepequals.test.DeepEqualsTest.EnumFoo.World;
 import static java.lang.Math.abs;
 import static java.util.Optional.empty;
 import static org.junit.jupiter.api.Assertions.*;
@@ -468,35 +464,6 @@ public class DeepEqualsTest {
         assertTrue(withOptions()
                 .typeLenient()
                 .deepEquals(_19_Foo.class, new _19_Foo(), new _19_Foo()));
-    }
-
-    public static class _20_Foo {
-        public int bar() {throw new RuntimeException();}
-        public int bazz() {throw new RuntimeException();}
-    }
-    @Test
-    void _20_ignore() {
-        assertTrue(withOptions()
-                           .ignore(method(_20_Foo.class, "bar"),
-                                   method(_20_Foo.class, "bazz"))
-                           .deepEquals(_20_Foo.class,
-                                       new _20_Foo(),
-                                       new _20_Foo()));
-    }
-
-    public static class _21_Foo {
-        @SuppressWarnings("WeakerAccess")
-        public int toBeIgnored() {throw new RuntimeException();}
-    }
-    @Test
-    void _21_ignoreMethodPredicate() {
-        final Predicate<Method> methodPredicate = m -> m.equals(
-                sneak(() -> _21_Foo.class.getMethod("toBeIgnored")));
-        assertTrue(withOptions()
-                           .ignore(methodPredicate)
-                           .deepEquals(_21_Foo.class,
-                                       new _21_Foo(),
-                                       new _21_Foo()));
     }
 
     public static class _class_not_Foo {
