@@ -12,14 +12,7 @@ import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -36,7 +29,7 @@ public final class DeepEquals {
 
         boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
 
-        WithOptions ignore(Predicate<Method> p);
+        WithOptions ignore(Predicate<Method> first, Predicate<Method>... rest);
 
         WithOptions orderLenient(/* add support to limit order leniency to certain types/method */);
 
@@ -166,8 +159,10 @@ public final class DeepEquals {
         }
 
         @Override
-        public WithOptions ignore(final Predicate<Method> p) {
-            ignoredPredicates.add(p);
+        public WithOptions ignore(final Predicate<Method> first,
+                                  final Predicate<Method>... rest) {
+            ignoredPredicates.add(first);
+            ignoredPredicates.addAll(asList(rest));
             return this;
         }
 
@@ -218,7 +213,7 @@ public final class DeepEquals {
 
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
-            final Set<Method> ms = methodsToEvaluate(tt.getRawType());
+            final Set<Method> ms = methodsToInvoke(tt.getRawType());
             return ms.stream()
                     .allMatch(m -> {
                         final String fieldName = m.getName();
@@ -363,11 +358,11 @@ public final class DeepEquals {
             return compareDeep(tt, x, y);
         }
 
-        private Set<Method> methodsToEvaluate(final Class c) {
+        private Set<Method> methodsToInvoke(final Class c) {
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
                     .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
-                    .filter(m -> !ignoredPredicates.contains(m))
+                    .filter(notIgnored())
                     .collect(toSet()));
             syntheticMethodsAreNotSupported(result);
             if (!typeLenient) {
@@ -378,6 +373,10 @@ public final class DeepEquals {
                  result = excludeMethods(result, WithArguments.or(ReturningVoid));
             }
             return result;
+        }
+
+        private Predicate<Method> notIgnored() {
+            return m -> ignoredPredicates.stream().noneMatch(p -> p.test(m));
         }
 
         private void override(final FieldComparator c) {

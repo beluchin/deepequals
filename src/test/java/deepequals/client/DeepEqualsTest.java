@@ -1,9 +1,10 @@
-package deepequals;
+package deepequals.client;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.TypeToken;
+import deepequals.DeepEquals;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,9 @@ import java.util.stream.IntStream;
 
 import static com.rainerhahnekamp.sneakythrow.Sneaky.sneak;
 import static deepequals.DeepEquals.*;
-import static deepequals.DeepEqualsTest.EnumFoo.Hello;
-import static deepequals.DeepEqualsTest.EnumFoo.World;
+import static deepequals.MethodPredicates.method;
+import static deepequals.client.DeepEqualsTest.EnumFoo.Hello;
+import static deepequals.client.DeepEqualsTest.EnumFoo.World;
 import static java.lang.Math.abs;
 import static java.util.Optional.empty;
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,26 +33,25 @@ import static utils.RandomUtils.uniqueString;
 
 @SuppressWarnings("unused")
 public class DeepEqualsTest {
-
     @FunctionalInterface
     public interface Predicate3 {
         boolean test(Object arg1, Object arg2, Object arg3);
     }
 
-    public static enum EnumFoo {
+    public enum EnumFoo {
         Hello, World
     }
 
     @Test
     public void __1_equals() {
         assertAllTrue(DeepEquals::deepEqualsTypeUnsafe,
-                int.class, 1, 1,
-                Integer.class, 1, 1,
-                String.class, "hello", "hello",
-                LocalDate.class, LocalDate.MIN, LocalDate.MIN,
-                LocalTime.class, LocalTime.MIN, LocalTime.MIN,
-                LocalDateTime.class, LocalDateTime.MIN, LocalDateTime.MIN,
-                EnumFoo.class, Hello, Hello);
+                      int.class, 1, 1,
+                      Integer.class, 1, 1,
+                      String.class, "hello", "hello",
+                      LocalDate.class, LocalDate.MIN, LocalDate.MIN,
+                      LocalTime.class, LocalTime.MIN, LocalTime.MIN,
+                      LocalDateTime.class, LocalDateTime.MIN, LocalDateTime.MIN,
+                      EnumFoo.class, Hello, Hello);
 
         final Object x = new Object();
         assertTrue(deepEquals(Object.class, x, x));
@@ -66,12 +67,12 @@ public class DeepEqualsTest {
                 EnumFoo.class, Hello, World);
     }
 
+    public static class _2_Foo {
+        public int get() { return 42; }
+    };
     @Test
     public void __2_class() {
-        class Foo {
-            public int get() { return 42; }
-        };
-        assertTrue(deepEquals(Foo.class, new Foo(), new Foo()));
+        assertTrue(deepEquals(_2_Foo.class, new _2_Foo(), new _2_Foo()));
     }
 
     @SuppressWarnings("serial")
@@ -114,41 +115,41 @@ public class DeepEqualsTest {
                 new HashSet<Integer>() {{ add(1); }}));
     }
 
+    public static class _6_Foo {
+        public int myInt() { return 42; }
+    }
+    public static class _6_Bar {
+        public String myString() { return uniqueString(); }
+    }
     @SuppressWarnings("serial")
     @Test
-    public void __6_maps() {
+    void __6_maps() {
 
         // returns true if the maps have exactly the same keys
         // and the corresponding values are deep-equals.
 
-        class Foo {
-            int myInt() { return 42; }
-        };
         assertTrue(deepEquals(
-                new TypeToken<Map<Integer, Foo>>() {},
-                ImmutableMap.of(1, new Foo()),
-                new HashMap<Integer, Foo>() {{
-                    put(1, new Foo() {});
+                new TypeToken<Map<Integer, _6_Foo>>() {},
+                ImmutableMap.of(1, new _6_Foo()),
+                new HashMap<Integer, _6_Foo>() {{
+                    put(1, new _6_Foo() {});
                 }}));
 
         // -- different size
         assertFalse(deepEquals(
-                new TypeToken<Map<Integer, Foo>>() {},
-                ImmutableMap.of(1, new Foo()),
-                new HashMap<Integer, Foo>()));
+                new TypeToken<Map<Integer, _6_Foo>>() {},
+                ImmutableMap.of(1, new _6_Foo()),
+                new HashMap<Integer, _6_Foo>()));
         // -- same size, different keys
         assertFalse(deepEquals(
-                new TypeToken<Map<Integer, Foo>>() {},
-                ImmutableMap.of(1, new Foo()),
-                new HashMap<Integer, Foo>() {{ put(2, new Foo()); }}));
+                new TypeToken<Map<Integer, _6_Foo>>() {},
+                ImmutableMap.of(1, new _6_Foo()),
+                new HashMap<Integer, _6_Foo>() {{ put(2, new _6_Foo()); }}));
         // -- same keys, values are not deep equals
-        class Bar {
-            public String myString() { return uniqueString(); }
-        };
         assertFalse(deepEquals(
-                new TypeToken<Map<Integer, Bar>>() {},
-                ImmutableMap.of(1, new Bar()),
-                new HashMap<Integer, Bar>() {{ put(1, new Bar()); }}));
+                new TypeToken<Map<Integer, _6_Bar>>() {},
+                ImmutableMap.of(1, new _6_Bar()),
+                new HashMap<Integer, _6_Bar>() {{ put(1, new _6_Bar()); }}));
     }
 
     @SuppressWarnings("serial")
@@ -259,76 +260,75 @@ public class DeepEqualsTest {
                 .deepEquals(Integer.class, 43, 42));
     }
 
+    public static class _14_Foo {
+        public Supplier<Integer> get() { throw new UnsupportedOperationException(); }
+    }
     @SuppressWarnings("serial")
     @Test
-    public void _14_overrideTypeTokenComparator() {
-        class Foo {
-            public Supplier<Integer> get() { throw new UnsupportedOperationException(); }
-        };
-
-        final Foo _42Positive = new Foo() { @Override public Supplier<Integer> get() { return () -> 42; } };
-        final Foo _42Negative = new Foo() { @Override public Supplier<Integer> get() { return () -> -42; } };
-        final Foo _43 = new Foo() { @Override public Supplier<Integer> get() { return () -> 43; } };
+    void _14_overrideTypeTokenComparator() {
+        final _14_Foo _42Positive = new _14_Foo() { @Override public Supplier<Integer> get() { return () -> 42; } };
+        final _14_Foo _42Negative = new _14_Foo() { @Override public Supplier<Integer> get() { return () -> -42; } };
+        final _14_Foo _43 = new _14_Foo() { @Override public Supplier<Integer> get() { return () -> 43; } };
 
         assertTrue(withOptions()
                 .override(comparator(
                         new TypeToken<Supplier<Integer>>() {},
                         (x, y) -> abs(x.get()) == abs(y.get())))
-                .deepEquals(Foo.class, _42Positive, _42Negative));
+                .deepEquals(_14_Foo.class, _42Positive, _42Negative));
         assertFalse(withOptions()
                 .override(comparator(
                         new TypeToken<Supplier<Integer>>() {},
                         (x, y) -> abs(x.get()) == abs(y.get())))
-                .deepEquals(Foo.class, _42Positive, _43));
+                .deepEquals(_14_Foo.class, _42Positive, _43));
         assertFalse(withOptions()
                 .override(comparator(
                         //              different supplier type
                         new TypeToken<Supplier<Double>>() {},
 
                         (x, y) -> abs(x.get()) == abs(y.get())))
-                .deepEquals(Foo.class, _42Positive, _42Negative));
+                .deepEquals(_14_Foo.class, _42Positive, _42Negative));
     }
 
+    public static class _15_Foo {
+        public String bad() { return uniqueString(); }
+        public String good() { return "good"; }
+    };
     @Test
-    public void _15_overrideFieldComparator() {
-        class Foo {
-            public String bad() { return uniqueString(); }
-            public String good() { return "good"; }
-        };
+    void _15_overrideFieldComparator() {
         assertTrue(withOptions()
-                .override(DeepEquals. <String> comparator(field(Foo.class, "bad"), (x, y) -> {
+                .override(DeepEquals. <String> comparator(field(_15_Foo.class, "bad"), (x, y) -> {
                     return !x.isEmpty() && !y.isEmpty(); // field type aware
                 }))
-                .deepEquals(Foo.class, new Foo(), new Foo()));
+                .deepEquals(_15_Foo.class, new _15_Foo(), new _15_Foo()));
         assertFalse(withOptions()
-                .override(DeepEquals. <String> comparator(field(Foo.class, "good"), (x, y) -> true))
-                .deepEquals(Foo.class, new Foo(), new Foo()));
+                .override(DeepEquals. <String> comparator(field(_15_Foo.class, "good"), (x, y) -> true))
+                .deepEquals(_15_Foo.class, new _15_Foo(), new _15_Foo()));
     }
 
+    public static class _16_Foo {
+        public Supplier<String> bad() {
+            return new Supplier<String>() {
+                @Override public String get() { return uniqueString(); }
+            };
+        }
+        public Supplier<String> good() {
+            return new Supplier<String>() {
+                @Override public String get() { return "good"; }
+            };
+        }
+    };
     @Test
-    public void _16_overrideComparatorForFieldOnTypeToken() {
-        class Foo {
-            public Supplier<String> bad() {
-                return new Supplier<String>() {
-                    @Override public String get() { return uniqueString(); }
-                };
-            }
-            public Supplier<String> good() {
-                return new Supplier<String>() {
-                    @Override public String get() { return "good"; }
-                };
-            }
-        };
+    void _16_overrideComparatorForFieldOnTypeToken() {
         assertTrue(withOptions()
                 .override(DeepEquals. <Supplier<String>> comparator(
-                        field(Foo.class, "bad"),
+                        field(_16_Foo.class, "bad"),
                         (x, y) -> !x.get().isEmpty() && !y.get().isEmpty()))
-                .deepEquals(Foo.class, new Foo(), new Foo()));
+                .deepEquals(_16_Foo.class, new _16_Foo(), new _16_Foo()));
         assertFalse(withOptions()
                 .override(DeepEquals. <Supplier<String>> comparator(
-                        field(Foo.class, "good"),
+                        field(_16_Foo.class, "good"),
                         (x, y) -> true))
-                .deepEquals(Foo.class, new Foo(), new Foo()));
+                .deepEquals(_16_Foo.class, new _16_Foo(), new _16_Foo()));
     }
 
     @Test
@@ -338,34 +338,34 @@ public class DeepEqualsTest {
         assertFalse(deepEquals(Object.class, new Object(), null));
     }
 
+    public static class _18_Foo {
+        public String getString() { return uniqueString(); }
+    }
     @SuppressWarnings("serial")
     @Test
-    public void _18_verbose() {
+    void _18_verbose() {
         final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
         System.setErr(new PrintStream(errContent));
 
         try {
-            class Foo {
-                public String getString() { return uniqueString(); }
-            };
             // --
             withOptions()
                     .verbose()
-                    .deepEquals(Foo.class, new Foo(), new Foo());
+                    .deepEquals(_18_Foo.class, new _18_Foo(), new _18_Foo());
             assertEquals("getString", get(errContent));
             // --
-            final Supplier<Foo> fooSupplier1 = new Supplier<Foo>() {
+            final Supplier<_18_Foo> fooSupplier1 = new Supplier<_18_Foo>() {
                 @Override
-                public Foo get() { return new Foo(); }
+                public _18_Foo get() { return new _18_Foo(); }
             };
-            final Supplier<Foo> fooSupplier2 = new Supplier<Foo>() {
+            final Supplier<_18_Foo> fooSupplier2 = new Supplier<_18_Foo>() {
                 @Override
-                public Foo get() { return new Foo(); }
+                public _18_Foo get() { return new _18_Foo(); }
             };
             withOptions()
                     .verbose()
                     .deepEquals(
-                            new TypeToken<Supplier<Foo>>() {},
+                            new TypeToken<Supplier<_18_Foo>>() {},
                             fooSupplier1,
                             fooSupplier2);
             assertEquals("get.getString", get(errContent));
@@ -379,7 +379,7 @@ public class DeepEqualsTest {
             withOptions()
                     .verbose()
                     .deepEquals(
-                            new TypeToken<Optional<Foo>>() {},
+                            new TypeToken<Optional<_18_Foo>>() {},
                             empty(),
                             empty());
             assertEquals("", get(errContent));
@@ -387,17 +387,17 @@ public class DeepEqualsTest {
             withOptions()
                     .verbose()
                     .deepEquals(
-                            new TypeToken<Optional<Foo>>() {},
+                            new TypeToken<Optional<_18_Foo>>() {},
                             empty(),
-                            Optional.of(new Foo()));
+                            Optional.of(new _18_Foo()));
             assertEquals("", get(errContent));
             // --
             withOptions()
                     .verbose()
                     .deepEquals(
-                            new TypeToken<Optional<Foo>>() {},
-                            Optional.of(new Foo()),
-                            Optional.of(new Foo()));
+                            new TypeToken<Optional<_18_Foo>>() {},
+                            Optional.of(new _18_Foo()),
+                            Optional.of(new _18_Foo()));
             assertEquals("getString", get(errContent));
             // --
             // sets
@@ -418,16 +418,16 @@ public class DeepEqualsTest {
                             ImmutableList.of(1));
             assertEquals("[1]", get(errContent));
             // --
-            final Supplier<List<Foo>> listOfFooSupplier1 = new Supplier<List<Foo>>() {
-                @Override public List<Foo> get() { return ImmutableList.of(new Foo()); }
+            final Supplier<List<_18_Foo>> listOfFooSupplier1 = new Supplier<List<_18_Foo>>() {
+                @Override public List<_18_Foo> get() { return ImmutableList.of(new _18_Foo()); }
             };
-            final Supplier<List<Foo>> listOfFooSupplier2 = new Supplier<List<Foo>>() {
-                @Override public List<Foo> get() { return ImmutableList.of(new Foo()); }
+            final Supplier<List<_18_Foo>> listOfFooSupplier2 = new Supplier<List<_18_Foo>>() {
+                @Override public List<_18_Foo> get() { return ImmutableList.of(new _18_Foo()); }
             };
             withOptions()
                     .verbose()
                     .deepEquals(
-                            new TypeToken<Supplier<List<Foo>>>() {},
+                            new TypeToken<Supplier<List<_18_Foo>>>() {},
                             listOfFooSupplier1,
                             listOfFooSupplier2);
             assertEquals("get[0].getString", get(errContent));
@@ -458,46 +458,62 @@ public class DeepEqualsTest {
         }
     }
 
+    public static class _19_Foo {
+        public int bar(final Object x) { return 0; }
+        public void baz() {}
+        public int xuq() { return 42; }
+    }
     @Test
-    public void _19_typeLenient() {
-        class Foo {
-            public int bar(final Object x) { return 0; }
-            public void baz() {}
-            public int xuq() { return 42; }
-        }
+    void _19_typeLenient() {
         assertTrue(withOptions()
                 .typeLenient()
-                .deepEquals(Foo.class, new Foo(), new Foo()));
+                .deepEquals(_19_Foo.class, new _19_Foo(), new _19_Foo()));
     }
 
+    public static class _20_Foo {
+        public int bar() {throw new RuntimeException();}
+        public int bazz() {throw new RuntimeException();}
+    }
     @Test
-    public void _20_ignore() {
-        class Foo {
-            int toBeIgnored() {throw new RuntimeException();}
-        }
-
-        final Predicate<Method> methodPredicate = m -> m.equals(
-                sneak(() -> Foo.class.getMethod("toBeIgnored")));
+    void _20_ignore() {
         assertTrue(withOptions()
-                .ignore(methodPredicate)
-                .deepEquals(Foo.class, new Foo(), new Foo()));
+                           .ignore(method(_20_Foo.class, "bar"),
+                                   method(_20_Foo.class, "bazz"))
+                           .deepEquals(_20_Foo.class,
+                                       new _20_Foo(),
+                                       new _20_Foo()));
     }
 
+    public static class _21_Foo {
+        @SuppressWarnings("WeakerAccess")
+        public int toBeIgnored() {throw new RuntimeException();}
+    }
     @Test
-    public void class_not() {
-        class Foo {
-            public String get() { return uniqueString(); }
-        };
-        assertFalse(deepEquals(Foo.class, new Foo(), new Foo()));
+    void _21_ignoreMethodPredicate() {
+        final Predicate<Method> methodPredicate = m -> m.equals(
+                sneak(() -> _21_Foo.class.getMethod("toBeIgnored")));
+        assertTrue(withOptions()
+                           .ignore(methodPredicate)
+                           .deepEquals(_21_Foo.class,
+                                       new _21_Foo(),
+                                       new _21_Foo()));
     }
 
+    public static class _class_not_Foo {
+        public String get() { return uniqueString(); }
+    }
+    @Test
+    void class_not() {
+        assertFalse(deepEquals(_class_not_Foo.class, new _class_not_Foo(), new _class_not_Foo()));
+    }
+
+    public static class _cycles_Foo {
+        public _cycles_Foo get() { return this; }
+    };
     @Test
     public void cyclesAreNotDetected() {
-        class Foo {
-            public Foo get() { return this; }
-        };
         assertThrows(StackOverflowError.class,
-                     () -> deepEquals(Foo.class, new Foo(), new Foo()));
+                     () -> deepEquals(_cycles_Foo.class, new _cycles_Foo(), new _cycles_Foo()));
     }
 
     @SuppressWarnings("serial")
@@ -562,16 +578,16 @@ public class DeepEqualsTest {
         assertEquals("getString", get(errContent));
     }
 
+    public static class _bridge_Bar {
+        public int get() { return 42; }
+    }
+    public static class _bridge_Foo implements Supplier<_bridge_Bar> {
+        @Override
+        public _bridge_Bar get() { return new _bridge_Bar();}
+    }
     @Test
-    public void bridgeMethods() {
-        class Bar {
-            public int get() { return 42; }
-        }
-        class Foo implements Supplier<Bar> {
-            @Override
-            public Bar get() { return new Bar();}
-        }
-        assertTrue(deepEquals(Foo.class, new Foo(), new Foo()));
+    void bridgeMethods() {
+        assertTrue(deepEquals(_bridge_Foo.class, new _bridge_Foo(), new _bridge_Foo()));
     }
 
     private static void assertAll(
