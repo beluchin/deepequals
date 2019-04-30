@@ -10,14 +10,17 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
+import static com.rainerhahnekamp.sneakythrow.Sneaky.sneak;
 import static deepequals.DeepEquals.*;
 import static deepequals.DeepEqualsTest.EnumFoo.Hello;
 import static deepequals.DeepEqualsTest.EnumFoo.World;
@@ -473,8 +476,10 @@ public class DeepEqualsTest {
             int toBeIgnored() {throw new RuntimeException();}
         }
 
+        final Predicate<Method> methodPredicate = m -> m.equals(
+                sneak(() -> Foo.class.getMethod("toBeIgnored")));
         assertTrue(withOptions()
-                .ignore(Foo.class, "toBeIgnored")
+                .ignore(methodPredicate)
                 .deepEquals(Foo.class, new Foo(), new Foo()));
     }
 

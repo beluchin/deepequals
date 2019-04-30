@@ -33,9 +33,10 @@ public final class DeepEquals {
     public interface WithOptions {
         <T> boolean deepEquals(Class<T> c, T x, T y);
         <T> boolean deepEquals(TypeToken<T> tt, T x, T y);
+
         boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
 
-        WithOptions ignore(Class<?> c, String name);
+        WithOptions ignore(Predicate<Method> p);
 
         WithOptions orderLenient(/* add support to limit order leniency to certain types/method */);
 
@@ -129,6 +130,7 @@ public final class DeepEquals {
         private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
         private final Stack<String> objectPath = new Stack<>();
         private final Set<Field> ignoredFields = new HashSet<>();
+        private final Set<Predicate<Method>> ignoredPredicates = new HashSet<>();
         private boolean verbose = false;
         private boolean orderLenient = false;
         private boolean typeLenient = false;
@@ -164,9 +166,9 @@ public final class DeepEquals {
         }
 
         @Override
-        public WithOptions ignore(Class<?> c, final String name) {
-        	ignoredFields.add(field(c, name));
-        	return this;
+        public WithOptions ignore(final Predicate<Method> p) {
+            ignoredPredicates.add(p);
+            return this;
         }
 
         @Override
@@ -365,7 +367,7 @@ public final class DeepEquals {
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
                     .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
-                    .filter(m -> !ignoredFields.contains(field(c, m.getName())))
+                    .filter(m -> !ignoredPredicates.contains(m))
                     .collect(toSet()));
             syntheticMethodsAreNotSupported(result);
             if (!typeLenient) {
