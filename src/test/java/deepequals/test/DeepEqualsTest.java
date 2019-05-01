@@ -27,8 +27,8 @@ import static java.util.Optional.empty;
 import static org.junit.jupiter.api.Assertions.*;
 import static utils.RandomUtils.uniqueString;
 
-@SuppressWarnings("unused")
-public class DeepEqualsTest {
+@SuppressWarnings({"unused", "UnstableApiUsage"})
+class DeepEqualsTest {
     @FunctionalInterface
     public interface Predicate3 {
         boolean test(Object arg1, Object arg2, Object arg3);
@@ -39,7 +39,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void __1_equals() {
+    void __1_equals() {
         assertAllTrue(DeepEquals::deepEqualsTypeUnsafe,
                       int.class, 1, 1,
                       Integer.class, 1, 1,
@@ -50,6 +50,7 @@ public class DeepEqualsTest {
                       EnumFoo.class, Hello, Hello);
 
         final Object x = new Object();
+        //noinspection SuspiciousNameCombination
         assertTrue(deepEquals(Object.class, x, x));
 
         assertAllFalse(DeepEquals::deepEqualsTypeUnsafe,
@@ -65,21 +66,21 @@ public class DeepEqualsTest {
 
     public static class _2_Foo {
         public int get() { return 42; }
-    };
+    }
     @Test
-    public void __2_class() {
+    void __2_class() {
         assertTrue(deepEquals(_2_Foo.class, new _2_Foo(), new _2_Foo()));
     }
 
     @SuppressWarnings("serial")
     @Test
-    public void __3_generics() {
+    void __3_generics() {
         assertTrue(deepEquals(new TypeToken<Supplier<Integer>>() {}, () -> 42, () -> 42));
     }
 
     @SuppressWarnings("serial")
     @Test
-    public void __4_optionals() {
+    void __4_optionals() {
         assertTrue(deepEqualsVarArgs(
                 new TypeToken<Optional<Integer>>() {},
                 Optional.empty(), Optional.empty(),
@@ -92,7 +93,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void __5_sets() {
+    void __5_sets() {
 
         // returns true if the sets have the same elements
         // according to the Set::contains method. It does not
@@ -135,7 +136,7 @@ public class DeepEqualsTest {
         assertFalse(deepEquals(
                 new TypeToken<Map<Integer, _6_Foo>>() {},
                 ImmutableMap.of(1, new _6_Foo()),
-                new HashMap<Integer, _6_Foo>()));
+                new HashMap<>()));
         // -- same size, different keys
         assertFalse(deepEquals(
                 new TypeToken<Map<Integer, _6_Foo>>() {},
@@ -150,7 +151,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void __7_lists() {
+    void __7_lists() {
         assertTrue(deepEquals(
                 new TypeToken<List<Integer>>() {},
                 ImmutableList.of(1, 2),
@@ -168,7 +169,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void __8_arrays() {
+    void __8_arrays() {
         assertTrue(deepEquals(
                 new TypeToken<Integer[]>() {},
                 new Integer[] {1, 2},
@@ -186,7 +187,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void __9_iterables() {
+    void __9_iterables() {
         assertTrue(deepEquals(
                 new TypeToken<Iterable<Integer>>() {},
                 ImmutableList.of(1, 2),
@@ -204,7 +205,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void _10_collections() {
+    void _10_collections() {
         assertTrue(deepEquals(
                 new TypeToken<Collection<Integer>>() {},
                 ImmutableList.of(1, 2),
@@ -222,7 +223,7 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void _11_orderLenient() {
+    void _11_orderLenient() {
 
         // arrays, collections, and iterables also participate in the order-lenient option
 
@@ -242,12 +243,12 @@ public class DeepEqualsTest {
 
     @Disabled
     @Test
-    public void _12_equalsLenient() {
+    void _12_equalsLenient() {
         fail("not implemented");
     }
 
     @Test
-    public void _13_overrideClassComparator() {
+    void _13_overrideClassComparator() {
         assertTrue(withOptions()
                 .override(comparator(Integer.class, (x, y) -> abs(x) == abs(y)))
                 .deepEquals(Integer.class, 42, -42));
@@ -288,7 +289,8 @@ public class DeepEqualsTest {
     public static class _15_Foo {
         public String bad() { return uniqueString(); }
         public String good() { return "good"; }
-    };
+    }
+
     @Test
     void _15_overrideFieldComparator() {
         assertTrue(withOptions()
@@ -303,16 +305,18 @@ public class DeepEqualsTest {
 
     public static class _16_Foo {
         public Supplier<String> bad() {
+            //noinspection Convert2Lambda,Anonymous2MethodRef
             return new Supplier<String>() {
-                @Override public String get() { return uniqueString(); }
+                @Override
+                public String get() {
+                    return uniqueString();
+                }
             };
         }
         public Supplier<String> good() {
-            return new Supplier<String>() {
-                @Override public String get() { return "good"; }
-            };
+            return () -> "good";
         }
-    };
+    }
     @Test
     void _16_overrideComparatorForFieldOnTypeToken() {
         assertTrue(withOptions()
@@ -328,7 +332,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void _17_null() {
+    void _17_null() {
         assertTrue(deepEquals(Object.class, null, null));
         assertFalse(deepEquals(Object.class, null, new Object()));
         assertFalse(deepEquals(Object.class, new Object(), null));
@@ -337,7 +341,7 @@ public class DeepEqualsTest {
     public static class _18_Foo {
         public String getString() { return uniqueString(); }
     }
-    @SuppressWarnings("serial")
+    @SuppressWarnings({"serial", "Convert2Lambda", "Anonymous2MethodRef"})
     @Test
     void _18_verbose() {
         final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
@@ -476,7 +480,8 @@ public class DeepEqualsTest {
 
     public static class _cycles_Foo {
         public _cycles_Foo get() { return this; }
-    };
+    }
+
     @Test
     void detectsCycles() {
         assertThrows(IllegalArgumentException.class,
@@ -485,18 +490,18 @@ public class DeepEqualsTest {
 
     @SuppressWarnings("serial")
     @Test
-    public void generics_not() {
+    void generics_not() {
         assertFalse(deepEquals(new TypeToken<Supplier<Integer>>() {}, () -> 43, () -> 42));
     }
 
     @Disabled
     @Test
-    public void incorrectMethodNameOnFieldDeclaration() {
+    void incorrectMethodNameOnFieldDeclaration() {
         fail("not implemented");
     }
 
     @Test
-    public void methodsReturningVoidAreIllegal() {
+    void methodsReturningVoidAreIllegal() {
         class Foo {
             public void bar() { throw new UnsupportedOperationException(); }
             public int baz() { throw new UnsupportedOperationException(); }
@@ -506,7 +511,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void methodsWithArgumentsAreIllegal() {
+    void methodsWithArgumentsAreIllegal() {
         class Foo {
             public int bar(final Object x) { throw new UnsupportedOperationException(); }
             public int baz() { throw new UnsupportedOperationException(); }
@@ -516,7 +521,7 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void twoComparatorsForTheSameType() {
+    void twoComparatorsForTheSameType() {
         assertThrows(IllegalArgumentException.class,
                      () -> withOptions()
                              .override(comparator(int.class, (x, y) -> true),
@@ -524,19 +529,19 @@ public class DeepEqualsTest {
     }
 
     @Test
-    public void verboseWhenExceptionsAreThrown() {
+    void verboseWhenExceptionsAreThrown() {
         final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
         System.setErr(new PrintStream(errContent));
 
         class Foo {
             public String getString() { throw new RuntimeException(); }
-        };
+        }
         try {
             withOptions()
                     .verbose()
                     .deepEquals(Foo.class, new Foo(), new Foo());
         }
-        catch (final RuntimeException e) {
+        catch (final RuntimeException ignored) {
         }
         finally {
             System.setErr(null);
@@ -576,7 +581,7 @@ public class DeepEqualsTest {
     private static <T> boolean deepEqualsVarArgs(final TypeToken<T> tt, final T... xs) {
         return IntStream.range(0, xs.length)
                 .filter(i -> (i % 2) == 0)
-                .noneMatch(i -> !deepEquals(tt, xs[i], xs[i + 1]));
+                .allMatch(i -> deepEquals(tt, xs[i], xs[i + 1]));
     }
 
     private static String get(final ByteArrayOutputStream err) {
