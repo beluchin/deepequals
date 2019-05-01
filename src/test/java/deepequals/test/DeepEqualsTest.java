@@ -478,8 +478,8 @@ public class DeepEqualsTest {
         public _cycles_Foo get() { return this; }
     };
     @Test
-    public void cyclesAreNotDetected() {
-        assertThrows(StackOverflowError.class,
+    void detectsCycles() {
+        assertThrows(IllegalArgumentException.class,
                      () -> deepEquals(_cycles_Foo.class, new _cycles_Foo(), new _cycles_Foo()));
     }
 

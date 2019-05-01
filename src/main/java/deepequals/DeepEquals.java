@@ -125,6 +125,7 @@ public final class DeepEquals {
         private final Stack<String> objectPath = new Stack<>();
         private final Set<Field> ignoredFields = new HashSet<>();
         private final Set<BiPredicate<TypeToken, Method>> ignoredPredicates = new HashSet<>();
+        private final Set<TypeToken> cycleSet = new HashSet<>();
         private boolean verbose = false;
         private boolean orderLenient = false;
         private boolean typeLenient = false;
@@ -214,25 +215,32 @@ public final class DeepEquals {
 
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
+            if (!cycleSet.add(tt)) {
+                throw new IllegalArgumentException(format("cycle: %s", tt));
+            }
             final Set<Method> ms = methodsToInvoke(tt);
-            return ms.stream()
+
+            final boolean result = ms.stream()
                     .allMatch(m -> {
                         final String fieldName = m.getName();
                         pushNode(fieldName);
                         final Object xfield = invoke(m, x);
                         final Object yfield = invoke(m, y);
-                        final Optional<BiPredicate> override = override(tt, fieldName);
+                        final Optional<BiPredicate> override = override(tt,
+                                                                        fieldName);
                         final boolean equals = override.isPresent()
                                 ? override.get().test(xfield, yfield)
                                 : deepEqualsImpl(
-                                        tt.resolveType(m.getGenericReturnType()),
-                                        xfield,
-                                        yfield);
+                                tt.resolveType(m.getGenericReturnType()),
+                                xfield,
+                                yfield);
                         if (equals) {
                             popNode();
                         }
                         return equals;
                     });
+            cycleSet.remove(tt);
+            return result;
         }
 
         private boolean compareIterables(final TypeToken tt, final Object x, final Object y) {
