@@ -572,6 +572,7 @@ public final class DeepEquals {
 
     private static Object invoke(final Method m, final Object x, final Object... args) {
         try {
+            m.setAccessible(true);
             return m.invoke(x, args);
         } catch (final Throwable e) {
             throw propagate(e);
