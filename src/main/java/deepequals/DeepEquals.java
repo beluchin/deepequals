@@ -29,8 +29,8 @@ public final class DeepEquals {
 
         boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
 
-        WithOptions ignore(BiPredicate<Class, Method> first,
-                           BiPredicate<Class, Method>... rest);
+        WithOptions ignore(BiPredicate<TypeToken, Method> first,
+                           BiPredicate<TypeToken, Method>... rest);
 
         WithOptions orderLenient(/* add support to limit order leniency to certain types/method */);
 
@@ -124,7 +124,7 @@ public final class DeepEquals {
         private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
         private final Stack<String> objectPath = new Stack<>();
         private final Set<Field> ignoredFields = new HashSet<>();
-        private final Set<BiPredicate<Class, Method>> ignoredPredicates = new HashSet<>();
+        private final Set<BiPredicate<TypeToken, Method>> ignoredPredicates = new HashSet<>();
         private boolean verbose = false;
         private boolean orderLenient = false;
         private boolean typeLenient = false;
@@ -160,8 +160,8 @@ public final class DeepEquals {
         }
 
         @Override
-        public WithOptions ignore(final BiPredicate<Class, Method> first,
-                                  final BiPredicate<Class, Method>... rest) {
+        public WithOptions ignore(final BiPredicate<TypeToken, Method> first,
+                                  final BiPredicate<TypeToken, Method>... rest) {
             ignoredPredicates.add(first);
             ignoredPredicates.addAll(asList(rest));
             return this;
@@ -214,7 +214,7 @@ public final class DeepEquals {
 
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
-            final Set<Method> ms = methodsToInvoke(tt.getRawType());
+            final Set<Method> ms = methodsToInvoke(tt);
             return ms.stream()
                     .allMatch(m -> {
                         final String fieldName = m.getName();
@@ -359,11 +359,12 @@ public final class DeepEquals {
             return compareDeep(tt, x, y);
         }
 
-        private Set<Method> methodsToInvoke(final Class c) {
+        private Set<Method> methodsToInvoke(final TypeToken tt) {
+            final Class c = tt.getRawType();
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
                     .filter(m -> !m.isBridge())
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
-                    .filter(ignoredOn(c).negate())
+                    .filter(ignoredOn(tt).negate())
                     .collect(toSet()));
             syntheticMethodsAreNotSupported(result);
             if (!typeLenient) {
@@ -376,8 +377,8 @@ public final class DeepEquals {
             return result;
         }
 
-        private Predicate<Method> ignoredOn(final Class c) {
-            return m -> ignoredPredicates.stream().anyMatch(p -> p.test(c, m));
+        private Predicate<Method> ignoredOn(final TypeToken tt) {
+            return m -> ignoredPredicates.stream().anyMatch(p -> p.test(tt, m));
         }
 
         private void override(final FieldComparator c) {
