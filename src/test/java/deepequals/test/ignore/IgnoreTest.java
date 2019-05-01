@@ -8,7 +8,7 @@ import static deepequals.MethodPredicates.methods;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-final class IgnoreNoInheritanceTest {
+final class IgnoreTest {
     @SuppressWarnings("unused")
     public static class Foo {
         private int bar = 0;
