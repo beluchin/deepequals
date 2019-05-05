@@ -117,6 +117,7 @@ public final class DeepEquals {
         }
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     private static class Stateful implements WithOptions {
         private static final Predicate<Method> WithArguments = m -> m.getParameterCount() != 0;
         private static final Predicate<Method> ReturningVoid = m -> m.getReturnType().equals(Void.TYPE);
@@ -125,7 +126,7 @@ public final class DeepEquals {
         private final Stack<String> objectPath = new Stack<>();
         private final Set<Field> ignoredFields = new HashSet<>();
         private final Set<BiPredicate<TypeToken, Method>> ignoredPredicates = new HashSet<>();
-        private final Set<TypeToken> cycleSet = new HashSet<>();
+        private CycleDetector cycleDetector;
         private boolean verbose = false;
         private boolean orderLenient = false;
         private boolean typeLenient = false;
@@ -138,6 +139,7 @@ public final class DeepEquals {
         @Override
         public <T> boolean deepEquals(final TypeToken<T> tt, final T x, final T y) {
             boolean result = false;
+            cycleDetector = new CycleDetector();
             try {
                 result = deepEqualsImpl(tt, x, y);
             }
@@ -152,10 +154,11 @@ public final class DeepEquals {
         @Override
         public boolean deepEqualsTypeUnsafe(
                 final Object classOrTypeToken, final Object x, final Object y) {
-            return deepEqualsImpl(
+            //noinspection unchecked
+            return deepEquals(
                     classOrTypeToken instanceof Class
-                            ? TypeToken.of((Class<?>) classOrTypeToken)
-                            : (TypeToken<?>) classOrTypeToken,
+                            ? TypeToken.of((Class)classOrTypeToken)
+                            : (TypeToken) classOrTypeToken,
                     x,
                     y);
         }
@@ -215,13 +218,15 @@ public final class DeepEquals {
 
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
-            if (!cycleSet.add(tt)) {
-                throw new IllegalArgumentException(format("cycle: %s", tt));
-            }
             final Set<Method> ms = methodsToInvoke(tt);
 
-            final boolean result = ms.stream()
+            return ms.stream()
                     .allMatch(m -> {
+                        cycleDetector.add(m);
+                        cycleDetector.getCycle().ifPresent(c -> {
+                            throw new CycleException(c.toString());
+                        });
+
                         final String fieldName = m.getName();
                         pushNode(fieldName);
                         final Object xfield = invoke(m, x);
@@ -230,17 +235,15 @@ public final class DeepEquals {
                                                                         fieldName);
                         final boolean equals = override.isPresent()
                                 ? override.get().test(xfield, yfield)
-                                : deepEqualsImpl(
-                                tt.resolveType(m.getGenericReturnType()),
-                                xfield,
-                                yfield);
+                                : deepEqualsImpl(tt.resolveType(m.getGenericReturnType()),
+                                                 xfield,
+                                                 yfield);
                         if (equals) {
                             popNode();
                         }
+                        cycleDetector.remove();
                         return equals;
                     });
-            cycleSet.remove(tt);
-            return result;
         }
 
         private boolean compareIterables(final TypeToken tt, final Object x, final Object y) {
@@ -367,6 +370,10 @@ public final class DeepEquals {
             return compareDeep(tt, x, y);
         }
 
+        private Predicate<Method> ignoredOn(final TypeToken tt) {
+            return m -> ignoredPredicates.stream().anyMatch(p -> p.test(tt, m));
+        }
+
         private Set<Method> methodsToInvoke(final TypeToken tt) {
             final Class c = tt.getRawType();
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
@@ -383,10 +390,6 @@ public final class DeepEquals {
                  result = excludeMethods(result, WithArguments.or(ReturningVoid));
             }
             return result;
-        }
-
-        private Predicate<Method> ignoredOn(final TypeToken tt) {
-            return m -> ignoredPredicates.stream().anyMatch(p -> p.test(tt, m));
         }
 
         private void override(final FieldComparator c) {
