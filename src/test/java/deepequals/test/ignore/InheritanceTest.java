@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Test;
 
 import static deepequals.DeepEquals.withOptions;
 import static deepequals.MethodPredicates.methods;
-import static deepequals.test.ignore.IgnoreInheritanceTest.Derived.bar;
-import static deepequals.test.ignore.IgnoreInheritanceTest.Derived.foo;
+import static deepequals.test.ignore.InheritanceTest.Derived.bar;
+import static deepequals.test.ignore.InheritanceTest.Derived.foo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class IgnoreInheritanceTest {
+class InheritanceTest {
     @SuppressWarnings("unused")
     public static class Base {
         int foo = 0;

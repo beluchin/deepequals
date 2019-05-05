@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("UnstableApiUsage")
-class IgnoreGenericsTest {
+class GenericsTest {
     @SuppressWarnings("unused")
     public static class Foo<T> {
         public T bar() { throw new RuntimeException(); }

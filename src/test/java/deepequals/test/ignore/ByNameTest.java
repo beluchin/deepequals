@@ -6,7 +6,7 @@ import static deepequals.DeepEquals.withOptions;
 import static deepequals.MethodPredicates.methods;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class IgnoreByNameTest {
+class ByNameTest {
     public static class Foo {
         @SuppressWarnings("unused")
         public int bar() {throw new RuntimeException();}
