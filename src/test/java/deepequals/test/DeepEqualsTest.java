@@ -44,9 +44,13 @@ class DeepEqualsTest {
                       int.class, 1, 1,
                       Integer.class, 1, 1,
                       String.class, "hello", "hello",
-                      LocalDate.class, LocalDate.MIN, LocalDate.MIN,
-                      LocalTime.class, LocalTime.MIN, LocalTime.MIN,
-                      LocalDateTime.class, LocalDateTime.MIN, LocalDateTime.MIN,
+                      LocalDate.class, LocalDate.MIN, LocalDate.of(LocalDate.MIN.getYear(),
+                                                                   LocalDate.MIN.getMonthValue(),
+                                                                   LocalDate.MIN.getDayOfMonth()),
+                      LocalTime.class, LocalTime.MIN, LocalTime.of(LocalTime.MIN.getHour(),
+                                                                   LocalTime.MIN.getMinute()),
+                      LocalDateTime.class, LocalDateTime.MIN, LocalDateTime.of(LocalDateTime.MIN.toLocalDate(),
+                                                                               LocalDateTime.MIN.toLocalTime()),
                       EnumFoo.class, Hello, Hello);
 
         final Object x = new Object();
