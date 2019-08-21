@@ -209,13 +209,6 @@ public final class DeepEquals {
                     asList((Object[]) y));
         }
 
-        private boolean compareCollections(final TypeToken tt, final Object x, final Object y) {
-            return compareSequencesOf(
-                    getTypeArgToken(tt, 0),
-                    asList(((Collection<?>) x).toArray(new Object[] {})),
-                    asList(((Collection<?>) y).toArray(new Object[] {})));
-        }
-
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
             final Set<Method> ms = methodsToInvoke(tt);
@@ -251,10 +244,6 @@ public final class DeepEquals {
                     getTypeArgToken(tt, 0),
                     Lists.newArrayList((Iterable<?>) x),
                     Lists.newArrayList((Iterable<?>) y));
-        }
-
-        private boolean compareLists(final TypeToken tt, final Object x, final Object y) {
-            return compareSequencesOf(getTypeArgToken(tt, 0), (List<?>) x, (List<?>) y);
         }
 
         private boolean compareMaps(final TypeToken tt, final Object x, final Object y) {
@@ -358,12 +347,6 @@ public final class DeepEquals {
             if (comparing(tt, Map.class)) {
                 return compareMaps(tt, x, y);
             }
-            if (comparing(tt, List.class)) {
-                return compareLists(tt, x, y);
-            }
-            if (comparing(tt, Collection.class)) {
-                return compareCollections(tt, x, y);
-            }
             if (comparing(tt, Iterable.class)) {
                 return compareIterables(tt, x, y);
             }
@@ -462,7 +445,7 @@ public final class DeepEquals {
         }
 
         private static boolean comparing(final TypeToken tt, final Class c) {
-            return tt.getRawType().equals(c);
+            return c.isAssignableFrom(tt.getRawType());
         }
 
         private static void enforceNoMethodsReturningVoid(

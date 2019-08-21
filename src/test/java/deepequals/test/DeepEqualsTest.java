@@ -226,6 +226,28 @@ class DeepEqualsTest {
                 ImmutableList.of(2, 1)));
     }
 
+    @Test
+    void compareSubclassOfIterable() {
+        class Foo {
+            final ImmutableList<String> bar;
+
+            public Foo (List<String> bar) {
+                this.bar = ImmutableList.copyOf(bar);
+            }
+
+            public ImmutableList<String> getBar() {
+                return bar;
+            }
+        }
+
+        Foo control = new Foo(Arrays.asList("x", "y"));
+        Foo test = new Foo(Arrays.asList("x", "y"));
+
+        assertTrue(deepEquals(Foo.class, control, test));
+    }
+
+
+
     @SuppressWarnings("serial")
     @Test
     void _11_orderLenient() {
