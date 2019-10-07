@@ -8,6 +8,7 @@ import static java.util.stream.Collectors.toSet;
 import static java.util.stream.IntStream.range;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -378,6 +379,7 @@ public final class DeepEquals {
             final Class c = tt.getRawType();
             Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
                     .filter(m -> !m.isBridge())
+                    .filter(m -> !isStatic(m))
                     .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
                     .filter(ignoredOn(tt).negate())
                     .collect(toSet()));
@@ -498,6 +500,10 @@ public final class DeepEquals {
 
         private static boolean isOneOf(final Class c, final Class... classes) {
             return ImmutableSet.copyOf(classes).contains(c);
+        }
+
+        private static boolean isStatic(final Method m) {
+            return Modifier.isStatic(m.getModifiers());
         }
 
         private static void syntheticMethodsAreNotSupported(final Set<Method> ms) {

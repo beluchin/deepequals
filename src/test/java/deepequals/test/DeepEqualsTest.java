@@ -571,6 +571,17 @@ class DeepEqualsTest {
         assertTrue(deepEquals(Foo.class, new Foo(), new Foo()));
     }
 
+    static class WithStaticMethod {
+        public static int foo() {throw new UnsupportedOperationException();}
+    }
+    @Test
+    void staticMethodsAreIgnored() {
+        assertTrue(deepEquals(WithStaticMethod.class,
+                              new WithStaticMethod(),
+                              new WithStaticMethod()));
+    }
+
+
     private static void assertAll(
             final Consumer<Boolean> c, final Predicate3 p, final Object... args) {
         IntStream.range(0, args.length)
