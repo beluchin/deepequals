@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.TypeToken;
 
 import java.lang.reflect.Field;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -24,12 +25,36 @@ final class FieldBasedGetter implements Getter {
     }
 
     @Override
+    public Class<?> declaringClass() {
+        return field.getDeclaringClass();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final FieldBasedGetter that = (FieldBasedGetter) o;
+        return field.equals(that.field) &&
+                typeToken.equals(that.typeToken);
+    }
+
+    @Override
     public Object get(final Object x) {
         try {
             return field.get(x);
         } catch (final IllegalAccessException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(field, typeToken);
+    }
+
+    @Override
+    public String name() {
+        return field.getName();
     }
 
     @Override

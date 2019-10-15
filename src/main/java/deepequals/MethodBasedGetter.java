@@ -5,6 +5,7 @@ import com.google.common.reflect.TypeToken;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -21,7 +22,7 @@ final class MethodBasedGetter implements Getter {
     private static final Predicate<Method> IsBridge = Method::isBridge;
     private static final Predicate<Method> IsStatic = MethodBasedGetter::isStatic;
     private static final Set<String> ObjectClassMethodNames = objectClassMethodNames();
-    private static final Predicate<Method> IsMethodOfObject = m -> !ObjectClassMethodNames.contains(m.getName());
+    private static final Predicate<Method> IsMethodOfObject = m -> ObjectClassMethodNames.contains(m.getName());
 
     private final Method method;
     private final TypeToken typeToken;
@@ -32,12 +33,36 @@ final class MethodBasedGetter implements Getter {
     }
 
     @Override
+    public Class<?> declaringClass() {
+        return method.getDeclaringClass();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final MethodBasedGetter that = (MethodBasedGetter) o;
+        return method.equals(that.method) &&
+                typeToken.equals(that.typeToken);
+    }
+
+    @Override
     public Object get(final Object x) {
         try {
             return method.invoke(x);
         } catch (final Throwable e) {
             throw propagate(e);
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(method, typeToken);
+    }
+
+    @Override
+    public String name() {
+        return method.getName();
     }
 
     @Override

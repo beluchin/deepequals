@@ -220,39 +220,37 @@ public final class DeepEquals {
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
             final Set<Getter> getters = getters(tt, options);
 
+            /*
             return getters.stream()
                     .allMatch(getter -> {
                         final Object xfield = getter.get(x);
                         final Object yfield = getter.get(y);
                         return deepEqualsImpl(getter.type(), xfield, yfield);
                     });
+             */
 
-            /*
-            return ms.stream()
-                    .allMatch(m -> {
-                        cycleDetector.add(m);
+            return getters.stream()
+                    .allMatch(getter -> {
+                        cycleDetector.add(getter);
                         cycleDetector.getCycle().ifPresent(c -> {
                             throw new CycleException(c.toString());
                         });
 
-                        final String fieldName = m.getName();
-                        pushNode(fieldName);
-                        final Object xfield = invoke(m, x);
-                        final Object yfield = invoke(m, y);
+                        final String getterName = getter.name();
+                        pushNode(getterName);
+                        final Object xfield = getter.get(x);
+                        final Object yfield = getter.get(y);
                         final Optional<BiPredicate> override = override(tt,
-                                                                        fieldName);
+                                                                        getterName);
                         final boolean equals = override.isPresent()
                                 ? override.get().test(xfield, yfield)
-                                : deepEqualsImpl(tt.resolveType(m.getGenericReturnType()),
-                                                 xfield,
-                                                 yfield);
+                                : deepEqualsImpl(getter.type(), xfield, yfield);
                         if (equals) {
                             popNode();
                         }
                         cycleDetector.remove();
                         return equals;
                     });
-             */
         }
 
         private boolean compareIterables(final TypeToken tt, final Object x, final Object y) {

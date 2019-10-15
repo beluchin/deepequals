@@ -1,15 +1,14 @@
 package deepequals;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 import static java.lang.String.format;
 
 final class Cycle {
-    private final List<Method> methods;
+    private final List<Getter> methods;
     private final int idx;
 
-    Cycle(final List<Method> methods, final int idx) {
+    Cycle(final List<Getter> methods, final int idx) {
         this.methods = methods;
         this.idx = idx;
     }
@@ -19,10 +18,10 @@ final class Cycle {
         StringBuilder builder = new StringBuilder();
         builder.append(format("cycle starts at index: %d\n", idx));
         int i = 0;
-        for (final Method m : methods) {
+        for (final Getter g: methods) {
             builder.append(format("%d: %s::%s\n",
-                                  i++, m.getDeclaringClass().getName(),
-                                  m.getName()));
+                                  i++, g.declaringClass().getName(),
+                                  g.name()));
         }
         return builder.toString();
     }
