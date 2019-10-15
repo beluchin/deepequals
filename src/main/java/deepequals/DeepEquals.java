@@ -1,21 +1,19 @@
 package deepequals;
 
 import static com.google.common.base.Throwables.propagate;
+import static deepequals.Getters.getters;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toSet;
 import static java.util.stream.IntStream.range;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
@@ -120,17 +118,16 @@ public final class DeepEquals {
 
     @SuppressWarnings("UnstableApiUsage")
     private static class Stateful implements WithOptions {
-        private static final Predicate<Method> WithArguments = m -> m.getParameterCount() != 0;
-        private static final Predicate<Method> ReturningVoid = m -> m.getReturnType().equals(Void.TYPE);
         private final Map<TypeToken, BiPredicate> typeTokenComparators = new HashMap<>();
         private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
         private final Stack<String> objectPath = new Stack<>();
         private final Set<Field> ignoredFields = new HashSet<>();
-        private final Set<BiPredicate<TypeToken, Method>> ignoredPredicates = new HashSet<>();
+        private final Set<BiPredicate<TypeToken, Method>> ignoredMethods = new HashSet<>();
         private CycleDetector cycleDetector;
         private boolean verbose = false;
         private boolean orderLenient = false;
         private boolean typeLenient = false;
+        private Options options;
 
         @Override
         public <T> boolean deepEquals(final Class<T> c, final T x, final T y) {
@@ -139,6 +136,8 @@ public final class DeepEquals {
 
         @Override
         public <T> boolean deepEquals(final TypeToken<T> tt, final T x, final T y) {
+            options = new Options(typeLenient, ignoredMethods);
+
             boolean result = false;
             cycleDetector = new CycleDetector();
             try {
@@ -167,8 +166,8 @@ public final class DeepEquals {
         @Override
         public WithOptions ignore(final BiPredicate<TypeToken, Method> first,
                                   final BiPredicate<TypeToken, Method>... rest) {
-            ignoredPredicates.add(first);
-            ignoredPredicates.addAll(asList(rest));
+            ignoredMethods.add(first);
+            ignoredMethods.addAll(asList(rest));
             return this;
         }
 
@@ -219,8 +218,16 @@ public final class DeepEquals {
 
         @SuppressWarnings("unchecked")
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
-            final Set<Method> ms = methodsToInvoke(tt);
+            final Set<Getter> getters = getters(tt, options);
 
+            return getters.stream()
+                    .allMatch(getter -> {
+                        final Object xfield = getter.get(x);
+                        final Object yfield = getter.get(y);
+                        return deepEqualsImpl(getter.type(), xfield, yfield);
+                    });
+
+            /*
             return ms.stream()
                     .allMatch(m -> {
                         cycleDetector.add(m);
@@ -245,6 +252,7 @@ public final class DeepEquals {
                         cycleDetector.remove();
                         return equals;
                     });
+             */
         }
 
         private boolean compareIterables(final TypeToken tt, final Object x, final Object y) {
@@ -371,29 +379,6 @@ public final class DeepEquals {
             return compareDeep(tt, x, y);
         }
 
-        private Predicate<Method> ignoredOn(final TypeToken tt) {
-            return m -> ignoredPredicates.stream().anyMatch(p -> p.test(tt, m));
-        }
-
-        private Set<Method> methodsToInvoke(final TypeToken tt) {
-            final Class c = tt.getRawType();
-            Set<Method> result = ImmutableSet.copyOf(stream(c.getMethods())
-                    .filter(m -> !m.isBridge())
-                    .filter(m -> !isStatic(m))
-                    .filter(m -> !ObjectClassMethodNames.contains(m.getName()))
-                    .filter(ignoredOn(tt).negate())
-                    .collect(toSet()));
-            syntheticMethodsAreNotSupported(result);
-            if (!typeLenient) {
-                enforceNoMethodsWithArguments(c, result);
-                enforceNoMethodsReturningVoid(c, result);
-            }
-            else {
-                 result = excludeMethods(result, WithArguments.or(ReturningVoid));
-            }
-            return result;
-        }
-
         private void override(final FieldComparator c) {
             final Field field = c.field();
             if (this.fieldComparators.containsKey(field)) {
@@ -467,53 +452,8 @@ public final class DeepEquals {
             return tt.getRawType().equals(c);
         }
 
-        private static void enforceNoMethodsReturningVoid(
-                final Class c, final Set<Method> result) {
-            result.stream()
-                    .filter(ReturningVoid)
-                    .findAny()
-                    .ifPresent(m -> {
-                        throw new IllegalClassException(format(
-                            "%s contains methods returning void.",
-                            c.getName()));
-                    });
-        }
-
-        private static void enforceNoMethodsWithArguments(
-                final Class c, final Set<Method> result) {
-            result.stream()
-                    .filter(WithArguments)
-                    .findAny()
-                    .ifPresent(m -> {
-                        throw new IllegalClassException(format(
-                            "%s contains methods with arguments.",
-                            c.getName()));
-                    });
-        }
-
-        private static Set<Method> excludeMethods(
-                final Set<Method> original, final Predicate<Method> p) {
-            return ImmutableSet.copyOf(original.stream()
-                    .filter(p.negate())
-                    .collect(toSet()));
-        }
-
         private static boolean isOneOf(final Class c, final Class... classes) {
             return ImmutableSet.copyOf(classes).contains(c);
-        }
-
-        private static boolean isStatic(final Method m) {
-            return Modifier.isStatic(m.getModifiers());
-        }
-
-        private static void syntheticMethodsAreNotSupported(final Set<Method> ms) {
-            ms.stream()
-                .filter(Method::isSynthetic)
-                .findAny()
-                .ifPresent(m -> {
-                    throw new UnsupportedOperationException(String.format(
-                            "method %s is synthetic", m.getName()));
-                });
         }
     }
 
@@ -529,8 +469,6 @@ public final class DeepEquals {
             return typeToken;
         }
     }
-
-    private static Set<String> ObjectClassMethodNames = objectClassMethodNames();
 
     public static <T> TypeTokenComparator comparator(final Class<T> c, final BiPredicate<T, T> f) {
         return new TypeTokenComparator(TypeToken.of(c), f);
@@ -577,20 +515,5 @@ public final class DeepEquals {
     private static TypeToken getTypeArgToken(final TypeToken tt, final int i) {
         final ParameterizedType pt = (ParameterizedType) (tt.getType());
         return TypeToken.of(pt.getActualTypeArguments()[i]);
-    }
-
-    private static Object invoke(final Method m, final Object x, final Object... args) {
-        try {
-            m.setAccessible(true);
-            return m.invoke(x, args);
-        } catch (final Throwable e) {
-            throw propagate(e);
-        }
-    }
-
-    private static Set<String> objectClassMethodNames() {
-        return ImmutableSet.copyOf(stream(Object.class.getMethods())
-                .map(Method::getName)
-                .collect(toSet()));
     }
 }

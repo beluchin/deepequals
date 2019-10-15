@@ -9,15 +9,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 final class PublicFinalFieldSupportTest {
     @Test
     void happyPath() {
-        class Foo {
+        //noinspection WeakerAccess
+        class Base {
             public final int x;
-            Foo(final int x) { this.x = x; }
+            Base(final int x) { this.x = x; }
         }
-        assertTrue(deepEquals(Foo.class,
-                              new Foo(0),
-                              new Foo(0)));
-        assertFalse(deepEquals(Foo.class,
-                              new Foo(0),
-                              new Foo(42)));
+        class Derived extends Base {
+            Derived(final int x) { super(x);}
+        }
+        assertTrue(deepEquals(Derived.class,
+                              new Derived(0),
+                              new Derived(0)));
+        assertFalse(deepEquals(Derived.class,
+                               new Derived(0),
+                               new Derived(42)));
     }
+
+    // TODO either fields or methods but not both by default. User must choose.
+
+    // TODO generics
+
+    // TODO cycle
 }
