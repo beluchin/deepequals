@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 final class PublicFinalFieldSupportTest {
     @Test
     void happyPath() {
@@ -28,7 +29,24 @@ final class PublicFinalFieldSupportTest {
                                new Derived(42)));
     }
 
-    // TODO either fields or methods but not both by default. User must choose.
+    @Test
+    public void bothFieldsAndMethodsInTheSameClass() {
+        class Foo {
+            public final int i;
+            private final int j;
+
+            Foo(final int i, final int j) {
+                this.i = i;
+                this.j = j;
+            }
+
+            int j() { return j; }
+        }
+
+        assertTrue(deepEquals(Foo.class, new Foo(1, 42), new Foo(1, 42)));
+        assertFalse(deepEquals(Foo.class, new Foo(1, 42), new Foo(1, 999)));
+        assertFalse(deepEquals(Foo.class, new Foo(1, 42), new Foo(999, 42)));
+    }
 
     class FooGenerics {
         public final Supplier<BarGenerics> barSupplier;
