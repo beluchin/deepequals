@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static deepequals.DeepEquals.deepEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class PublicFinalFieldSupportTest {
@@ -29,5 +30,25 @@ final class PublicFinalFieldSupportTest {
 
     // TODO generics
 
-    // TODO cycle
+    class FooCycle {
+        public final BarCycle bar;
+        FooCycle(BarCycle bar) { this.bar = bar; }
+    }
+    class BarCycle {
+        private FooCycle foo;
+        public FooCycle foo() { return foo; }
+        public void set(FooCycle foo) { this.foo = foo; }
+    }
+    @Test
+    void detectsCycles() {
+        //noinspection unused
+        BarCycle bar1 = new BarCycle();
+        BarCycle bar2 = new BarCycle();
+        FooCycle foo1 = new FooCycle(bar1);
+        FooCycle foo2 = new FooCycle(bar2);
+        bar1.set(foo1);
+        bar2.set(foo2);
+        assertThrows(IllegalArgumentException.class,
+                     () -> deepEquals(FooCycle.class, foo1, foo2));
+    }
 }
