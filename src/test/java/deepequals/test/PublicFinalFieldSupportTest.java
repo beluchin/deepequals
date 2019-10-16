@@ -1,13 +1,19 @@
 package deepequals.test;
 
+import deepequals.DeepEquals;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Supplier;
 
+import static deepequals.DeepEquals.comparator;
 import static deepequals.DeepEquals.deepEquals;
+import static deepequals.DeepEquals.field;
+import static deepequals.DeepEquals.withOptions;
+import static java.lang.Math.abs;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.RandomUtils.uniqueString;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 final class PublicFinalFieldSupportTest {
@@ -91,4 +97,39 @@ final class PublicFinalFieldSupportTest {
         assertThrows(IllegalArgumentException.class,
                      () -> deepEquals(FooCycle.class, foo1, foo2));
     }
+
+    @Test
+    void overrideClass() {
+        class Foo {
+            public final int i;
+            Foo(final int i) { this.i = i; }
+        }
+        assertTrue(withOptions()
+                           .override(comparator(int.class, (x, y) -> abs(x) == abs(y)))
+                           .deepEquals(Foo.class, new Foo(42), new Foo(-42)));
+        assertFalse(withOptions()
+                            .override(comparator(int.class, (x, y) -> abs(x) == abs(y)))
+                            .deepEquals(Foo.class, new Foo(43), new Foo(42)));
+    }
+
+    @Test
+    void overrideFieldComparator() {
+        class Foo {
+            public final String bad = uniqueString();
+            public final String good = "good";
+        }
+        assertTrue(withOptions()
+                           .override(DeepEquals. <String> comparator(
+                                   field(Foo.class, "bad"),
+                                   (x, y) -> {
+                               return !x.isEmpty() && !y.isEmpty(); // field type aware
+                           }))
+                           .deepEquals(Foo.class, new Foo(), new Foo()));
+        assertFalse(withOptions()
+                            .override(DeepEquals. <String> comparator(
+                                    field(Foo.class, "good"),
+                                    (x, y) -> true))
+                            .deepEquals(Foo.class, new Foo(), new Foo()));
+    }
+
 }
