@@ -1,5 +1,6 @@
 package deepequals;
 
+import com.google.common.collect.Sets;
 import com.google.common.reflect.TypeToken;
 
 import java.util.Set;
@@ -12,9 +13,8 @@ final class Getters {
     private Getters() {}
 
     static Set<Getter> getters(final TypeToken tt, final Options options) {
-        final Set<Getter> fieldGetters = fieldBasedGetters(tt);
-        return !fieldGetters.isEmpty()
-                ? fieldGetters
-                : methodBasedGetters(tt, options);
+        return Sets.union(
+                fieldBasedGetters(tt),
+                methodBasedGetters(tt, options));
     }
 }

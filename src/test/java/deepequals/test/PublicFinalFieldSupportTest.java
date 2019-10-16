@@ -40,7 +40,7 @@ final class PublicFinalFieldSupportTest {
                 this.j = j;
             }
 
-            int j() { return j; }
+            public int j() { return j; }
         }
 
         assertTrue(deepEquals(Foo.class, new Foo(1, 42), new Foo(1, 42)));
