@@ -2,6 +2,8 @@ package deepequals.test;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.function.Supplier;
+
 import static deepequals.DeepEquals.deepEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,7 +30,27 @@ final class PublicFinalFieldSupportTest {
 
     // TODO either fields or methods but not both by default. User must choose.
 
-    // TODO generics
+    class FooGenerics {
+        public final Supplier<BarGenerics> barSupplier;
+        FooGenerics(final Supplier<BarGenerics> barSupplier) { this.barSupplier = barSupplier; }
+    }
+    class BarGenerics {
+        public final int i;
+        BarGenerics(final int i) { this.i = i; }
+    }
+    @Test
+    public void generics() {
+        final BarGenerics bar1 = new BarGenerics(1);
+        final BarGenerics barAlso1 = new BarGenerics(1);
+        assertTrue(deepEquals(FooGenerics.class,
+                              new FooGenerics(() -> bar1),
+                              new FooGenerics(() -> barAlso1)));
+
+        final BarGenerics bar42 = new BarGenerics(42);
+        assertFalse(deepEquals(FooGenerics.class,
+                               new FooGenerics(() -> bar1),
+                               new FooGenerics(() -> bar42)));
+    }
 
     class FooCycle {
         public final BarCycle bar;
