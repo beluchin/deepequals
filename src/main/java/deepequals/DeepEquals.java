@@ -220,15 +220,6 @@ public final class DeepEquals {
         private boolean compareDeep(final TypeToken tt, final Object x, final Object y) {
             final Set<Getter> getters = getters(tt, options);
 
-            /*
-            return getters.stream()
-                    .allMatch(getter -> {
-                        final Object xfield = getter.get(x);
-                        final Object yfield = getter.get(y);
-                        return deepEqualsImpl(getter.type(), xfield, yfield);
-                    });
-             */
-
             return getters.stream()
                     .allMatch(getter -> {
                         cycleDetector.add(getter);
