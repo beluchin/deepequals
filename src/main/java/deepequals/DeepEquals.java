@@ -1,29 +1,40 @@
 package deepequals;
 
-import static com.google.common.base.Throwables.propagate;
-import static deepequals.Getters.getters;
-import static java.lang.String.format;
-import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
-import static java.util.stream.IntStream.range;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.reflect.TypeToken;
+import deepequals.comparator.Comparator;
+import deepequals.comparator.FieldComparator;
+import deepequals.comparator.TypeTokenComparator;
+import deepequals.comparator.TypeTokenMatcherComparator;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.Stack;
 import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.reflect.TypeToken;
+import static deepequals.Getters.getters;
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static java.util.stream.IntStream.range;
 
 @SuppressWarnings("rawtypes")
 public final class DeepEquals {
     public interface WithOptions {
         <T> boolean deepEquals(Class<T> c, T x, T y);
+
         <T> boolean deepEquals(TypeToken<T> tt, T x, T y);
 
         boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
@@ -38,18 +49,6 @@ public final class DeepEquals {
         WithOptions typeLenient();
 
         WithOptions verbose();
-    }
-
-    public static abstract class Comparator {
-        private final BiPredicate predicate;
-
-        Comparator(final BiPredicate predicate) {
-            this.predicate = predicate;
-        }
-
-        public BiPredicate predicate() {
-            return predicate;
-        }
     }
 
     public static class Field {
@@ -103,26 +102,13 @@ public final class DeepEquals {
         }
     }
 
-    public static class FieldComparator extends Comparator {
-        private final Field field;
-
-        public FieldComparator(final Field field, final BiPredicate f) {
-            super(f);
-            this.field = field;
-        }
-
-        Field field() {
-            return field;
-        }
-    }
-
     @SuppressWarnings("UnstableApiUsage")
     private static class Stateful implements WithOptions {
         private final Map<TypeToken, BiPredicate> typeTokenComparators = new HashMap<>();
         private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
         private final Stack<String> objectPath = new Stack<>();
-        private final Set<Field> ignoredFields = new HashSet<>();
         private final Set<BiPredicate<TypeToken, Method>> ignoredMethods = new HashSet<>();
+        private final Set<TypeTokenMatcherComparator> typeTokenMatcherComparators = new HashSet<>();
         private CycleDetector cycleDetector;
         private boolean verbose = false;
         private boolean orderLenient = false;
@@ -142,8 +128,7 @@ public final class DeepEquals {
             cycleDetector = new CycleDetector();
             try {
                 result = deepEqualsImpl(tt, x, y);
-            }
-            finally {
+            } finally {
                 if (verbose && !result) {
                     printPath();
                 }
@@ -157,15 +142,16 @@ public final class DeepEquals {
             //noinspection unchecked
             return deepEquals(
                     classOrTypeToken instanceof Class
-                            ? TypeToken.of((Class)classOrTypeToken)
+                            ? TypeToken.of((Class) classOrTypeToken)
                             : (TypeToken) classOrTypeToken,
                     x,
                     y);
         }
 
+        @SafeVarargs
         @Override
-        public WithOptions ignore(final BiPredicate<TypeToken, Method> first,
-                                  final BiPredicate<TypeToken, Method>... rest) {
+        public final WithOptions ignore(final BiPredicate<TypeToken, Method> first,
+                                        final BiPredicate<TypeToken, Method>... rest) {
             ignoredMethods.add(first);
             ignoredMethods.addAll(asList(rest));
             return this;
@@ -173,17 +159,18 @@ public final class DeepEquals {
 
         @Override
         public WithOptions orderLenient() {
-            orderLenient  = true;
+            orderLenient = true;
             return this;
         }
 
         @Override
         public WithOptions override(final Comparator... comparators) {
-            for (final Comparator c: comparators) {
+            for (final Comparator c : comparators) {
                 if (c instanceof TypeTokenComparator) {
                     override((TypeTokenComparator) c);
-                }
-                else {
+                } else if (c instanceof TypeTokenMatcherComparator) {
+                    override((TypeTokenMatcherComparator) c);
+                } else {
                     override((FieldComparator) c);
                 }
             }
@@ -192,13 +179,13 @@ public final class DeepEquals {
 
         @Override
         public WithOptions typeLenient() {
-            typeLenient  = true;
+            typeLenient = true;
             return this;
         }
 
         @Override
         public WithOptions verbose() {
-            verbose  = true;
+            verbose = true;
             return this;
         }
 
@@ -212,8 +199,8 @@ public final class DeepEquals {
         private boolean compareCollections(final TypeToken tt, final Object x, final Object y) {
             return compareSequencesOf(
                     getTypeArgToken(tt, 0),
-                    asList(((Collection<?>) x).toArray(new Object[] {})),
-                    asList(((Collection<?>) y).toArray(new Object[] {})));
+                    asList(((Collection<?>) x).toArray(new Object[]{})),
+                    asList(((Collection<?>) y).toArray(new Object[]{})));
         }
 
         @SuppressWarnings("unchecked")
@@ -252,7 +239,9 @@ public final class DeepEquals {
         }
 
         private boolean compareLists(final TypeToken tt, final Object x, final Object y) {
-            return compareSequencesOf(getTypeArgToken(tt, 0), (List<?>) x, (List<?>) y);
+            return compareSequencesOf(getTypeArgToken(tt, 0),
+                                      (List<?>) x,
+                                      (List<?>) y);
         }
 
         private boolean compareMaps(final TypeToken tt, final Object x, final Object y) {
@@ -261,8 +250,14 @@ public final class DeepEquals {
             final TypeToken<?> valueTT = getTypeArgToken(tt, 1);
             return mapx.size() == mapy.size()
                     && mapx.keySet().stream().allMatch(k ->
-                        mapy.containsKey(k)
-                        && deepEqualsImpl(valueTT, mapx.get(k), mapy.get(k)));
+                                                               mapy.containsKey(
+                                                                       k)
+                                                                       && deepEqualsImpl(
+                                                                       valueTT,
+                                                                       mapx.get(
+                                                                               k),
+                                                                       mapy.get(
+                                                                               k)));
         }
 
         private boolean compareOptionals(final TypeToken tt, final Object x, final Object y) {
@@ -271,9 +266,9 @@ public final class DeepEquals {
 
             return (!optx.isPresent() && !opty.isPresent())
                     || (optx.isPresent() && opty.isPresent()
-                            && deepEqualsImpl(
-                                    getTypeArgToken(tt, 0),
-                                    optx.get(), opty.get()));
+                    && deepEqualsImpl(
+                    getTypeArgToken(tt, 0),
+                    optx.get(), opty.get()));
         }
 
         private boolean compareSequencesOf(
@@ -296,7 +291,9 @@ public final class DeepEquals {
                         return range(0, ySize)
                                 .filter(idx -> !yIndices.contains(idx))
                                 .filter(yidx -> {
-                                    if (deepEqualsImpl(componentType, e, y.get(yidx))) {
+                                    if (deepEqualsImpl(componentType,
+                                                       e,
+                                                       y.get(yidx))) {
                                         yIndices.add(yidx);
                                         return true;
                                     }
@@ -308,14 +305,16 @@ public final class DeepEquals {
         }
 
         private boolean compareSequencesOfStrict(final TypeToken componentType,
-                final List x, final List y) {
+                                                 final List x, final List y) {
             final int xSize = x.size();
             final int ySize = y.size();
             if (!range(0, xSize)
                     .allMatch(idx -> {
                         pushIndexedNode(idx);
                         final boolean equals = idx < xSize && idx < ySize
-                                && deepEqualsImpl(componentType, x.get(idx), y.get(idx));
+                                && deepEqualsImpl(componentType,
+                                                  x.get(idx),
+                                                  y.get(idx));
                         if (equals) {
                             popIndexedNode();
                         }
@@ -331,41 +330,60 @@ public final class DeepEquals {
         }
 
         @SuppressWarnings("unchecked")
-        private boolean deepEqualsImpl(final TypeToken tt, final Object x, final Object y) {
+        private boolean deepEqualsImpl(final TypeToken tt,
+                                       final Object x,
+                                       final Object y) {
             if ((x == null && y != null) || (x != null && y == null)) {
                 return false;
             }
-            if (x == y || (x == null && y == null)) {
+            if (x == y) {
                 return true;
             }
-            if (typeTokenComparators.containsKey(tt)) {
-                return typeTokenComparators.get(tt).test(x, y);
-            }
-            if (compareWithEquals(tt)) {
-                return x.equals(y);
-            }
-            if (tt.isArray()) {
-                return compareArrays(tt, x, y);
-            }
-            if (comparing(tt, Optional.class)) {
-                return compareOptionals(tt, x, y);
-            }
-            if (comparing(tt, Set.class)) {
-                return compareSets(x, y);
-            }
-            if (comparing(tt, Map.class)) {
-                return compareMaps(tt, x, y);
-            }
-            if (comparing(tt, List.class)) {
-                return compareLists(tt, x, y);
-            }
-            if (comparing(tt, Collection.class)) {
-                return compareCollections(tt, x, y);
-            }
-            if (comparing(tt, Iterable.class)) {
-                return compareIterables(tt, x, y);
-            }
-            return compareDeep(tt, x, y);
+            final Optional<BiPredicate> predicate = override(tt);
+            return predicate.map(p -> p.test(x, y))
+                    .orElseGet(() -> {
+                        if (compareWithEquals(tt)) {
+                            return x.equals(y);
+                        }
+                        if (tt.isArray()) {
+                            return compareArrays(tt, x, y);
+                        }
+                        if (comparing(tt, Optional.class)) {
+                            return compareOptionals(tt, x, y);
+                        }
+                        if (comparing(tt, Set.class)) {
+                            return compareSets(x, y);
+                        }
+                        if (comparing(tt, Map.class)) {
+                            return compareMaps(tt, x, y);
+                        }
+                        if (comparing(tt, List.class)) {
+                            return compareLists(tt, x, y);
+                        }
+                        if (comparing(tt, Collection.class)) {
+                            return compareCollections(tt, x, y);
+                        }
+                        if (comparing(tt, Iterable.class)) {
+                            return compareIterables(tt, x, y);
+                        }
+                        return compareDeep(tt, x, y);
+                    });
+        }
+
+        private Predicate<TypeTokenMatcherComparator> matches(final TypeToken tt) {
+            return c -> c.matches(tt);
+        }
+
+        private Optional<BiPredicate> override(final TypeToken tt) {
+            return Optional.ofNullable(
+                    typeTokenMatcherComparators
+                            .stream()
+                            .filter(matches(tt))
+                            .findFirst()
+                            .map(Comparator::predicate)
+                            .orElseGet(() -> typeTokenComparators.getOrDefault(
+                                    tt,
+                                    null)));
         }
 
         private void override(final FieldComparator c) {
@@ -394,6 +412,10 @@ public final class DeepEquals {
             this.typeTokenComparators.put(tt, c.predicate());
         }
 
+        private void override(final TypeTokenMatcherComparator c) {
+            typeTokenMatcherComparators.add(c);
+        }
+
         private void popIndexedNode() {
             final String top = objectPath.pop();
             objectPath.push(top.substring(0, top.lastIndexOf('[')));
@@ -408,7 +430,7 @@ public final class DeepEquals {
         }
 
         private void pushIndexedNode(final int idx) {
-            final String prefix = objectPath.isEmpty()? "": objectPath.pop();
+            final String prefix = objectPath.isEmpty() ? "" : objectPath.pop();
             objectPath.push(format("%s[%d]", prefix, idx));
         }
 
@@ -429,12 +451,12 @@ public final class DeepEquals {
             return unwrapped.isPrimitive()
                     || t.isEnum()
                     || isOneOf(
-                            t,
-                            String.class,
-                            LocalDate.class,
-                            LocalTime.class,
-                            LocalDateTime.class,
-                            Object.class);
+                    t,
+                    String.class,
+                    LocalDate.class,
+                    LocalTime.class,
+                    LocalDateTime.class,
+                    Object.class);
         }
 
         private static boolean comparing(final TypeToken tt, final Class c) {
@@ -443,19 +465,6 @@ public final class DeepEquals {
 
         private static boolean isOneOf(final Class c, final Class... classes) {
             return ImmutableSet.copyOf(classes).contains(c);
-        }
-    }
-
-    public static class TypeTokenComparator extends Comparator {
-        private final TypeToken typeToken;
-
-        public TypeTokenComparator(final TypeToken typeToken, final BiPredicate predicate) {
-            super(predicate);
-            this.typeToken = typeToken;
-        }
-
-        public TypeToken typeToken() {
-            return typeToken;
         }
     }
 
