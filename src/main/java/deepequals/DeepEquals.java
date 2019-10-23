@@ -14,6 +14,7 @@ import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -108,7 +109,7 @@ public final class DeepEquals {
         private final Map<Field, BiPredicate> fieldComparators = new HashMap<>();
         private final Stack<String> objectPath = new Stack<>();
         private final Set<BiPredicate<TypeToken, Method>> ignoredMethods = new HashSet<>();
-        private final Set<TypeTokenMatcherComparator> typeTokenMatcherComparators = new HashSet<>();
+        private final List<TypeTokenMatcherComparator> typeTokenMatcherComparators = new ArrayList<>();
         private CycleDetector cycleDetector;
         private boolean verbose = false;
         private boolean orderLenient = false;
@@ -413,7 +414,7 @@ public final class DeepEquals {
         }
 
         private void override(final TypeTokenMatcherComparator c) {
-            typeTokenMatcherComparators.add(c);
+            typeTokenMatcherComparators.add(0, c);
         }
 
         private void popIndexedNode() {

@@ -16,7 +16,7 @@ import static utils.RandomUtils.uniqueString;
 class GenericsTest {
     @SuppressWarnings("unused")
     static class Foo<T> {
-        public String unique() {return uniqueString();}
+        public String throws_() {throw new UnsupportedOperationException();}
     }
 
     @Test
@@ -53,7 +53,31 @@ class GenericsTest {
                                        new Foo<>()));
     }
 
-    // TODO given multiple comparators applicable to TypeToken, last one wins
+    @Test
+    void lastMatchingComparatorWins() {
+        assertTrue(withOptions()
+                           .override(comparatorForParameterizedTypes(
+                                   Foo.class,
+                                   (x, y) -> false))
+                           .override(comparatorForParameterizedTypes(
+                                   Foo.class,
+                                   (x, y) -> true))
+                           .deepEquals(new TypeToken<Foo<String>>() {},
+                                       new Foo<>(),
+                                       new Foo<>()));
+        assertFalse(withOptions()
+                           .override(comparatorForParameterizedTypes(
+                                   Foo.class,
+                                   (x, y) -> true))
+                           .override(comparatorForParameterizedTypes(
+                                   Foo.class,
+                                   (x, y) -> false))
+                           .deepEquals(new TypeToken<Foo<String>>() {},
+                                       new Foo<>(),
+                                       new Foo<>()));
+    }
+
+    // TODO bring here the tests all tests on generics.
 
     private static <T> TypeTokenMatcherComparator comparatorForParameterizedTypes(
             @SuppressWarnings("SameParameterValue") final Class<T> class__,
