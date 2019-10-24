@@ -14,6 +14,7 @@ import static java.util.function.Function.identity;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings("UnstableApiUsage")
 final class EitherTest {
     interface Either<T1, T2> {
         <R> R join(Function<T1, R> map1, Function<T2, R> map2);
@@ -54,6 +55,7 @@ final class EitherTest {
                 Either.first(0)));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void typeUnsafe() {
         final DeepEquals.WithOptions options = withOptions().override(comparator(

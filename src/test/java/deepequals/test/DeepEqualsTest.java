@@ -262,35 +262,6 @@ class DeepEqualsTest {
                 .deepEquals(Integer.class, 43, 42));
     }
 
-    @SuppressWarnings("serial")
-    @Test
-    void _14_overrideTypeTokenComparator() {
-        class Foo {
-            public Supplier<Integer> get() { throw new UnsupportedOperationException(); }
-        }
-        final Foo _42Positive = new Foo() { @Override public Supplier<Integer> get() { return () -> 42; } };
-        final Foo _42Negative = new Foo() { @Override public Supplier<Integer> get() { return () -> -42; } };
-        final Foo _43 = new Foo() { @Override public Supplier<Integer> get() { return () -> 43; } };
-
-        assertTrue(withOptions()
-                .override(comparator(
-                        new TypeToken<Supplier<Integer>>() {},
-                        (x, y) -> abs(x.get()) == abs(y.get())))
-                .deepEquals(Foo.class, _42Positive, _42Negative));
-        assertFalse(withOptions()
-                .override(comparator(
-                        new TypeToken<Supplier<Integer>>() {},
-                        (x, y) -> abs(x.get()) == abs(y.get())))
-                .deepEquals(Foo.class, _42Positive, _43));
-        assertFalse(withOptions()
-                .override(comparator(
-                        //              different supplier type
-                        new TypeToken<Supplier<Double>>() {},
-
-                        (x, y) -> abs(x.get()) == abs(y.get())))
-                .deepEquals(Foo.class, _42Positive, _42Negative));
-    }
-
     @Test
     void _15_overrideFieldComparator() {
         class Foo {
@@ -304,34 +275,6 @@ class DeepEqualsTest {
                 .deepEquals(Foo.class, new Foo(), new Foo()));
         assertFalse(withOptions()
                 .override(DeepEquals. <String> comparator(field(Foo.class, "good"), (x, y) -> true))
-                .deepEquals(Foo.class, new Foo(), new Foo()));
-    }
-
-    @Test
-    void _16_overrideComparatorForFieldOnTypeToken() {
-        class Foo {
-            public Supplier<String> bad() {
-                //noinspection Convert2Lambda,Anonymous2MethodRef
-                return new Supplier<String>() {
-                    @Override
-                    public String get() {
-                        return uniqueString();
-                    }
-                };
-            }
-            public Supplier<String> good() {
-                return () -> "good";
-            }
-        }
-        assertTrue(withOptions()
-                .override(DeepEquals. <Supplier<String>> comparator(
-                        field(Foo.class, "bad"),
-                        (x, y) -> !x.get().isEmpty() && !y.get().isEmpty()))
-                .deepEquals(Foo.class, new Foo(), new Foo()));
-        assertFalse(withOptions()
-                .override(DeepEquals. <Supplier<String>> comparator(
-                        field(Foo.class, "good"),
-                        (x, y) -> true))
                 .deepEquals(Foo.class, new Foo(), new Foo()));
     }
 

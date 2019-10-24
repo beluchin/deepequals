@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.function.BiPredicate;
 
+@SuppressWarnings("UnstableApiUsage")
 public final class MethodPredicates {
     private MethodPredicates() {
     }
