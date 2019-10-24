@@ -33,13 +33,16 @@ import static java.util.stream.IntStream.range;
 
 @SuppressWarnings("rawtypes")
 public final class DeepEquals {
+    @SuppressWarnings("UnstableApiUsage")
     public interface WithOptions {
         <T> boolean deepEquals(Class<T> c, T x, T y);
 
         <T> boolean deepEquals(TypeToken<T> tt, T x, T y);
 
+        @SuppressWarnings("unused")
         boolean deepEqualsTypeUnsafe(Object classOrTypeToken, Object x, Object y);
 
+        @SuppressWarnings("unchecked")
         WithOptions ignore(BiPredicate<TypeToken, Method> first,
                            BiPredicate<TypeToken, Method>... rest);
 

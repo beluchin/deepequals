@@ -31,31 +31,35 @@ final class IgnoreTest {
     @Test
     void ignore() {
         //noinspection unchecked
-        final DeepEquals.WithOptions wo = withOptions()
+        final DeepEquals.WithOptions options = withOptions()
                 .ignore(methods(Foo.class, "bar"));
 
-        assertTrue(wo.deepEquals(Foo.class, Foo.bar(3), Foo.bar(42)));
-        assertFalse(wo.deepEquals(Foo.class, Foo.baz(3), Foo.baz(42)));
+        assertTrue(options.deepEquals(Foo.class, Foo.bar(3), Foo.bar(42)));
+        assertFalse(options.deepEquals(Foo.class, Foo.baz(3), Foo.baz(42)));
     }
 
     @Test
     void ignoreMultiple() {
         //noinspection unchecked
-        final DeepEquals.WithOptions withOptions = withOptions()
+        final DeepEquals.WithOptions options = withOptions()
                 .ignore(methods(Foo.class, "bar"),
                         methods(Foo.class, "baz"));
 
-        assertTrue(withOptions.deepEquals(Foo.class, Foo.barBaz(3, 3), Foo.barBaz(42, 42)));
-        assertFalse(withOptions.deepEquals(Foo.class, Foo.xuq(3), Foo.xuq(42)));
+        assertTrue(options.deepEquals(Foo.class,
+                                      Foo.barBaz(3, 3),
+                                      Foo.barBaz(42, 42)));
+        assertFalse(options.deepEquals(Foo.class, Foo.xuq(3), Foo.xuq(42)));
     }
 
     @Test
     void ignoreMultipleNoDup() {
         //noinspection unchecked
-        final DeepEquals.WithOptions withOptions = withOptions()
+        final DeepEquals.WithOptions options = withOptions()
                 .ignore(methods(Foo.class, "bar", "baz"));
 
-        assertTrue(withOptions.deepEquals(Foo.class, Foo.barBaz(3, 3), Foo.barBaz(42, 42)));
-        assertFalse(withOptions.deepEquals(Foo.class, Foo.xuq(3), Foo.xuq(42)));
+        assertTrue(options.deepEquals(Foo.class,
+                                      Foo.barBaz(3, 3),
+                                      Foo.barBaz(42, 42)));
+        assertFalse(options.deepEquals(Foo.class, Foo.xuq(3), Foo.xuq(42)));
     }
 }

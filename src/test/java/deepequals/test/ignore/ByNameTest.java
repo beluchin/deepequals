@@ -7,7 +7,7 @@ import static deepequals.MethodPredicates.methods;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ByNameTest {
-    public static class Foo {
+    static class Foo {
         @SuppressWarnings("unused")
         public int bar() {throw new RuntimeException();}
     }
